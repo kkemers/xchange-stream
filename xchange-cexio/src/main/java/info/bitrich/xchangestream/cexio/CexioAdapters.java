@@ -26,7 +26,7 @@ public class CexioAdapters {
             return new CexioOrder(adaptCurrencyPair(order.getPair()),
                                   order.getId(),
                                   getOrderStatus(order),
-                                  order.getRemains());
+                                  adaptAmount(order.getRemains()));
         }
     }
 
