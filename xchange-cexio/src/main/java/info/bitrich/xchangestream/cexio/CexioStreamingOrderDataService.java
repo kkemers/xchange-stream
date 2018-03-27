@@ -84,14 +84,7 @@ public class CexioStreamingOrderDataService extends JsonNettyStreamingService {
                 case ORDER:
                     CexioWebSocketOrderMessage order = deserialize(message, CexioWebSocketOrderMessage.class);
                     if (order != null) {
-                        if (order.getData().isCancel()) {
-                            LOG.debug(String.format("Order is cancelled: %s", order.getData()));
-                        } else if (order.getData().getRemains().compareTo(BigDecimal.ZERO) == 0) {
-                            LOG.debug(String.format("Order is fully filled: %s", order.getData()));
-                        } else {
-                            LOG.debug(String.format("Order is partially filled: %s", order.getData()));
-                        }
-
+                        LOG.debug(String.format("Order is updated: %s", order.getData()));
                         subject.onNext(CexioAdapters.adaptOrder(order.getData()));
                     }
                     break;
