@@ -69,47 +69,45 @@ public class CexioStreamingRawService extends JsonNettyStreamingService {
         JsonNode cexioMessage = message.get("e");
 
         try {
-        if (cexioMessage != null) {
-            switch (cexioMessage.textValue()) {
-                case CONNECTED:
-                    auth();
-                    break;
-                case AUTH:
-                    CexioWebSocketAuthResponse response = deserialize(message, CexioWebSocketAuthResponse.class);
-                    if (response != null && !response.isSuccess()) {
-                        LOG.error("Authentication error: {}", response.getData().getError());
-                    }
-                    break;
-                case PING:
-                    pong();
-                    break;
-                case ORDER:
-                    CexioWebSocketOrderMessage cexioOrder;
-                    try {
-                        cexioOrder = deserialize(message, CexioWebSocketOrderMessage.class);
-                    } catch (JsonProcessingException e) {
-                        LOG.error("Order parsing error: {}", e.getMessage());
-                        subjectOrder.onError(e);
-                        return;
-                    }
-                    Order order = CexioAdapters.adaptOrder(cexioOrder.getData());
-                    LOG.debug(String.format("Order is updated: %s", order));
-                    subjectOrder.onNext(order);
-                    break;
-                case TRANSACTION:
-                    CexioWebSocketTransactionMessage transaction;
-                    try {
-                        transaction = deserialize(message, CexioWebSocketTransactionMessage.class);
-                    } catch (JsonProcessingException e) {
-                        LOG.error("Transaction parsing error: {}", e.getMessage());
-                        subjectTransaction.onError(e);
-                        return;
-                    }
-                    LOG.debug(String.format("New transaction: %s", transaction.getData()));
-                    subjectTransaction.onNext(transaction.getData());
-                    break;
+            if (cexioMessage != null) {
+                switch (cexioMessage.textValue()) {
+                    case CONNECTED:
+                        auth();
+                        break;
+                    case AUTH:
+                        CexioWebSocketAuthResponse response = deserialize(message, CexioWebSocketAuthResponse.class);
+                        if (response != null && !response.isSuccess()) {
+                            LOG.error("Authentication error: {}", response.getData().getError());
+                        }
+                        break;
+                    case PING:
+                        pong();
+                        break;
+                    case ORDER:
+                        try {
+                            CexioWebSocketOrderMessage cexioOrder =
+                                    deserialize(message, CexioWebSocketOrderMessage.class);
+                            Order order = CexioAdapters.adaptOrder(cexioOrder.getData());
+                            LOG.debug(String.format("Order is updated: %s", order));
+                            subjectOrder.onNext(order);
+                        } catch (Exception e) {
+                            LOG.error("Order parsing error: {}", e.getMessage(), e);
+                            subjectOrder.onError(e);
+                        }
+                        break;
+                    case TRANSACTION:
+                        try {
+                            CexioWebSocketTransactionMessage transaction =
+                                    deserialize(message, CexioWebSocketTransactionMessage.class);
+                            LOG.debug(String.format("New transaction: %s", transaction.getData()));
+                            subjectTransaction.onNext(transaction.getData());
+                        } catch (Exception e) {
+                            LOG.error("Transaction parsing error: {}", e.getMessage(), e);
+                            subjectTransaction.onError(e);
+                        }
+                        break;
+                }
             }
-        }
         } catch (JsonProcessingException e) {
             LOG.error("Json parsing error: {}", e.getMessage());
         }
