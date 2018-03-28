@@ -67,28 +67,34 @@ public class CexioStreamingOrderDataService extends JsonNettyStreamingService {
         LOG.debug("Receiving message: {}", message);
         JsonNode cexioMessage = message.get("e");
 
-        if (cexioMessage != null) {
-            switch (cexioMessage.textValue()) {
-                case CONNECTED:
-                    auth();
-                    break;
-                case AUTH:
-                    CexioWebSocketAuthResponse response = deserialize(message, CexioWebSocketAuthResponse.class);
-                    if (response != null && !response.isSuccess()) {
-                        LOG.error("Authentication error: {}", response.getData().getError());
-                    }
-                    break;
-                case PING:
-                    pong();
-                    break;
-                case ORDER:
-                    CexioWebSocketOrderMessage order = deserialize(message, CexioWebSocketOrderMessage.class);
-                    if (order != null) {
-                        LOG.debug(String.format("Order is updated: %s", order.getData()));
-                        subject.onNext(CexioAdapters.adaptOrder(order.getData()));
-                    }
-                    break;
+        try {
+            if (cexioMessage != null) {
+                switch (cexioMessage.textValue()) {
+                    case CONNECTED:
+                        auth();
+                        break;
+                    case AUTH:
+                        CexioWebSocketAuthResponse response = deserialize(message, CexioWebSocketAuthResponse.class);
+                        if (response != null && !response.isSuccess()) {
+                            LOG.error("Authentication error: {}", response.getData().getError());
+                        }
+                        break;
+                    case PING:
+                        pong();
+                        break;
+                    case ORDER:
+                        CexioWebSocketOrderMessage cexioOrder = deserialize(message, CexioWebSocketOrderMessage.class);
+                        if (cexioOrder != null) {
+                            Order order = CexioAdapters.adaptOrder(cexioOrder.getData());
+                            LOG.debug(String.format("Order is updated: %s", order));
+                            subject.onNext(order);
+                        }
+                        break;
+                }
             }
+        } catch (JsonProcessingException e) {
+            LOG.error("Json parsing error: {}", e.getMessage());
+            subject.onError(e);
         }
     }
 
@@ -122,14 +128,8 @@ public class CexioStreamingOrderDataService extends JsonNettyStreamingService {
         this.apiSecret = apiSecret;
     }
 
-    private <T> T deserialize(JsonNode message, Class<T> valueType) {
-        T result = null;
-        try {
-            result = objectMapper.treeToValue(message, valueType);
-        } catch (JsonProcessingException e) {
-            LOG.error("Json parsing error: {}", e.getMessage());
-        }
-        return result;
+    private <T> T deserialize(JsonNode message, Class<T> valueType) throws JsonProcessingException {
+        return objectMapper.treeToValue(message, valueType);
     }
 
     public Observable<Order> getOrderExecution() {
