@@ -18,9 +18,13 @@ public class CexioManualExample {
         CexioProperties properties = new CexioProperties();
         exchange.setCredentials(properties.getApiKey(), properties.getSecretKey());
 
-        exchange.connect().blockingAwait();
-
         StreamingPrivateDataService streamingPrivateDataService = exchange.getStreamingPrivateDataService();
+        CexioStreamingPrivateDataRawService streamingPrivateDataRawService =
+                (CexioStreamingPrivateDataRawService) streamingPrivateDataService;
+
+        streamingPrivateDataRawService.isConnected().subscribe(unused -> LOG.info("Is connected"));
+
+        exchange.connect().blockingAwait();
 
         streamingPrivateDataService.getOrders()
                 .subscribe(
@@ -30,9 +34,6 @@ public class CexioManualExample {
                                           order.getCurrencyPair(),
                                           order.getRemainingAmount()),
                         throwable -> LOG.error("ERROR in getting order data: ", throwable));
-
-        CexioStreamingPrivateDataRawService streamingPrivateDataRawService =
-                (CexioStreamingPrivateDataRawService) streamingPrivateDataService;
 
         streamingPrivateDataRawService.getTransactions()
                 .subscribe(

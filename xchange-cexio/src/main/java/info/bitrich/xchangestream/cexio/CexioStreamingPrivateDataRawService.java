@@ -30,6 +30,7 @@ public class CexioStreamingPrivateDataRawService extends JsonNettyStreamingServi
     private String apiSecret;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private PublishSubject<Boolean> subjectConnected = PublishSubject.create();
     private PublishSubject<Order> subjectOrder = PublishSubject.create();
     private PublishSubject<CexioWebSocketTransaction> subjectTransaction = PublishSubject.create();
 
@@ -52,6 +53,14 @@ public class CexioStreamingPrivateDataRawService extends JsonNettyStreamingServi
 
     public Observable<CexioWebSocketTransaction> getTransactions() {
         return subjectTransaction.share();
+    }
+
+    /**
+     * Triggers at connect to stream or at reconnect case
+     *
+     */
+    public Observable<Boolean> isConnected() {
+        return subjectConnected.share();
     }
 
     @Override
@@ -93,6 +102,7 @@ public class CexioStreamingPrivateDataRawService extends JsonNettyStreamingServi
                         if (response != null && !response.isSuccess()) {
                             LOG.error("Authentication error: {}", response.getData().getError());
                         }
+                        subjectConnected.onNext(true);
                         break;
                     case PING:
                         pong();
