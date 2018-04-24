@@ -7,6 +7,7 @@ import org.knowm.xchange.dto.Order;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Objects;
 
 public class CexioAdapters {
 
@@ -59,12 +60,15 @@ public class CexioAdapters {
     }
 
     private static Order.OrderStatus getOrderStatus(CexioWebSocketOrder order) {
+
+        Objects.requireNonNull(order.getRemains(), "Mandatory field 'remainds' is absent");
+
         Order.OrderStatus status;
         if (order.isCancel()) {
             status = Order.OrderStatus.CANCELED;
         } else if (order.getRemains().compareTo(BigDecimal.ZERO) == 0) {
             status = Order.OrderStatus.FILLED;
-        } else if (order.getRemains().compareTo(order.getAmount()) != 0) {
+        } else if (order.getRemains().compareTo(BigDecimal.ZERO) != 0) {
             status = Order.OrderStatus.PARTIALLY_FILLED;
         } else {
             status = Order.OrderStatus.NEW;
