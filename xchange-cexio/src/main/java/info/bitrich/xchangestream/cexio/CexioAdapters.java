@@ -61,17 +61,23 @@ public class CexioAdapters {
 
     private static Order.OrderStatus getOrderStatus(CexioWebSocketOrder order) {
 
-        Objects.requireNonNull(order.getRemains(), "Mandatory field 'remainds' is absent");
+        BigDecimal remains = order.getRemains();
+        BigDecimal amount = order.getAmount();
+        Objects.requireNonNull(remains, "Mandatory field 'remains' is absent");
 
         Order.OrderStatus status;
         if (order.isCancel()) {
             status = Order.OrderStatus.CANCELED;
-        } else if (order.getRemains().compareTo(BigDecimal.ZERO) == 0) {
+        } else if (remains.compareTo(BigDecimal.ZERO) == 0) {
             status = Order.OrderStatus.FILLED;
-        } else if (order.getRemains().compareTo(BigDecimal.ZERO) != 0) {
+        } else if (amount == null && remains.compareTo(BigDecimal.ZERO) != 0) {
             status = Order.OrderStatus.PARTIALLY_FILLED;
-        } else {
+        } else if (amount != null && remains.compareTo(amount) < 0) {
+            status = Order.OrderStatus.PARTIALLY_FILLED;
+        } else if (amount != null && remains.compareTo(amount) == 0) {
             status = Order.OrderStatus.NEW;
+        } else {
+            status = Order.OrderStatus.UNKNOWN;
         }
         return status;
     }
