@@ -285,7 +285,13 @@ public abstract class NettyStreamingService<T> {
 
 
     protected void handleChannelMessage(String channel, T message) {
-        ObservableEmitter<T> emitter = channels.get(channel).emitter;
+        Subscription subscription = channels.get(channel);
+        if (subscription == null) {
+            LOG.debug("No subscription for channel {}.", channel);
+            return;
+        }
+
+        ObservableEmitter<T> emitter = subscription.emitter;
         if (emitter == null) {
             LOG.debug("No subscriber for channel {}.", channel);
             return;
@@ -295,7 +301,13 @@ public abstract class NettyStreamingService<T> {
     }
 
     protected void handleChannelError(String channel, Throwable t) {
-        ObservableEmitter<T> emitter = channels.get(channel).emitter;
+        Subscription subscription = channels.get(channel);
+        if (subscription == null) {
+            LOG.debug("No subscription for channel {}.", channel);
+            return;
+        }
+
+        ObservableEmitter<T> emitter = subscription.emitter;
         if (emitter == null) {
             LOG.debug("No subscriber for channel {}.", channel);
             return;
