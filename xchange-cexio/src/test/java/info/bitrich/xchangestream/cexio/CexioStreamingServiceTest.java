@@ -147,7 +147,8 @@ public class CexioStreamingServiceTest {
                 "buy",
                 Date.from(Instant.parse("2018-03-27T15:16:52.016Z")),
                 new BigDecimal("35.24"),
-                null);
+                null,
+                null, null, null, null);
 
         test.assertValue(transaction);
     }
@@ -161,7 +162,6 @@ public class CexioStreamingServiceTest {
         CexioStreamingPrivateDataRawService service =
                 (CexioStreamingPrivateDataRawService) cexioStreamingExchange.getStreamingPrivateDataService();
 
-
         TestObserver<CexioWebSocketTransaction> test = service.getTransactions().test();
 
         service.handleMessage(jsonNode);
@@ -170,21 +170,60 @@ public class CexioStreamingServiceTest {
                 "5918682827",
                 "order:5918682821:a:BTC",
                 "user:up118134628:a:BTC",
-                new BigDecimal("0.002"),
+                new BigDecimal("0.00200000"),
                 new BigDecimal("0"),
-                new BigDecimal("0.006"),
+                new BigDecimal("0.00600000"),
                 "up118134628",
                 "BTC",
                 "USD",
-                new BigDecimal("0.002"),
+                new BigDecimal("0.00200000"),
                 5918682821L,
                 5918682821L,
                 5918682779L,
                 new BigDecimal("8030"),
                 "buy",
                 Date.from(Instant.parse("2018-03-28T05:41:49.482Z")),
-                new BigDecimal("0.006"),
-                new BigDecimal("0.05"));
+                new BigDecimal("0.00600000"),
+                new BigDecimal("0.05"),
+                null, null, null, null);
+
+        test.assertValue(transaction);
+    }
+
+    @Test
+    public void testGetTransaction_balanceOperation() throws Exception {
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode jsonNode = objectMapper.readTree(ClassLoader.getSystemClassLoader()
+                .getResourceAsStream("transaction-deposit.json"));
+
+        CexioStreamingPrivateDataRawService service =
+                (CexioStreamingPrivateDataRawService) cexioStreamingExchange.getStreamingPrivateDataService();
+
+        TestObserver<CexioWebSocketTransaction> test = service.getTransactions().test();
+
+        service.handleMessage(jsonNode);
+
+        CexioWebSocketTransaction transaction = new CexioWebSocketTransaction(
+                "6124119108",
+                null,
+                null,
+                null,
+                null,
+                null,
+                "up12345678",
+                "BTC",
+                null,
+                new BigDecimal("0.65304468"),
+                null,
+                null,
+                null,
+                null,
+                "deposit",
+                Date.from(Instant.parse("2018-05-01T15:56:46.428Z")),
+                null,
+                null,
+                "4496e500c15aa3bf3a06e451b4bfa8ba8d59f46fc420191e2eeee3b6c9eae605",
+                0L, "pending", "3Mm1kFuN6AGQq3pUWAezfY3fF1C46WVFcm");
 
         test.assertValue(transaction);
     }
