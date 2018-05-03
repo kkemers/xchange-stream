@@ -89,6 +89,8 @@ public abstract class NettyStreamingService<T> implements AutoCloseable {
     }
 
     public Completable connect() {
+        isManualDisconnect = false;
+
         return Completable.create(completable -> {
             try {
                 LOG.info("Connecting to {}://{}:{}{}", uri.getScheme(), uri.getHost(), uri.getPort(), uri.getPath());
@@ -345,9 +347,7 @@ public abstract class NettyStreamingService<T> implements AutoCloseable {
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
-            if (isManualDisconnect) {
-                isManualDisconnect = false;
-            } else {
+            if (!isManualDisconnect) {
                 super.channelInactive(ctx);
                 LOG.info("Reopening websocket because it was closed by the host");
                 final Completable c = connect()
