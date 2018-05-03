@@ -179,15 +179,19 @@ public abstract class NettyStreamingService<T> {
     public Completable disconnect() {
         isManualDisconnect = true;
         return Completable.create(completable -> {
-            if (webSocketChannel == null || !webSocketChannel.isOpen()) {
+
+            Runnable cleanup = () -> {
+                channels = new ConcurrentHashMap<>();
                 completable.onComplete();
+            };
+
+            if (webSocketChannel == null || !webSocketChannel.isOpen()) {
+                cleanup.run();
+                return;
             }
 
             CloseWebSocketFrame closeFrame = new CloseWebSocketFrame();
-            webSocketChannel.writeAndFlush(closeFrame).addListener(future -> {
-                channels = new ConcurrentHashMap<>();
-                completable.onComplete();
-            });
+            webSocketChannel.writeAndFlush(closeFrame).addListener(future -> cleanup.run());
         });
     }
 
