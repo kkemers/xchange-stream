@@ -41,7 +41,7 @@ import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
 
-public abstract class NettyStreamingService<T> {
+public abstract class NettyStreamingService<T> implements AutoCloseable {
     private final Logger LOG = LoggerFactory.getLogger(this.getClass());
     private static final Duration DEFAULT_CONNECTION_TIMEOUT = Duration.ofSeconds(10);
     private static final Duration DEFAULT_RETRY_DURATION = Duration.ofSeconds(15);
@@ -193,9 +193,13 @@ public abstract class NettyStreamingService<T> {
             CloseWebSocketFrame closeFrame = new CloseWebSocketFrame();
             webSocketChannel.writeAndFlush(closeFrame).addListener(future -> {
                 cleanup.run();
-                eventLoopGroup.shutdownGracefully();
             });
         });
+    }
+
+    @Override
+    public void close() {
+        eventLoopGroup.shutdownGracefully();
     }
 
     protected abstract String getChannelNameFromMessage(T message) throws IOException;

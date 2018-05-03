@@ -13,7 +13,7 @@ import org.knowm.xchange.exceptions.NotYetImplementedForExchangeException;
 /**
  * Created by Lukas Zaoralek on 7.11.17.
  */
-public class BitfinexStreamingExchange extends BitfinexExchange implements StreamingExchange {
+public class BitfinexStreamingExchange extends BitfinexExchange implements StreamingExchange, AutoCloseable {
     private static final String API_URI = "wss://api.bitfinex.com/ws/2";
 
     private final BitfinexStreamingService streamingService;
@@ -65,5 +65,10 @@ public class BitfinexStreamingExchange extends BitfinexExchange implements Strea
     @Override
     public void useCompressedMessages(boolean compressedMessages) {
         streamingService.useCompressedMessages(compressedMessages);
+    }
+
+    @Override
+    public void close() {
+        streamingService.close();
     }
 }
