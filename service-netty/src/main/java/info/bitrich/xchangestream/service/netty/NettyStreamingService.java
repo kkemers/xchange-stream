@@ -191,7 +191,10 @@ public abstract class NettyStreamingService<T> {
             }
 
             CloseWebSocketFrame closeFrame = new CloseWebSocketFrame();
-            webSocketChannel.writeAndFlush(closeFrame).addListener(future -> cleanup.run());
+            webSocketChannel.writeAndFlush(closeFrame).addListener(future -> {
+                cleanup.run();
+                eventLoopGroup.shutdownGracefully();
+            });
         });
     }
 
