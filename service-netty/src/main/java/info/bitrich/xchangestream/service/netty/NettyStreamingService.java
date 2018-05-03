@@ -179,7 +179,7 @@ public abstract class NettyStreamingService<T> {
     public Completable disconnect() {
         isManualDisconnect = true;
         return Completable.create(completable -> {
-            if (webSocketChannel.isOpen()) {
+            if (webSocketChannel != null && webSocketChannel.isOpen()) {
                 CloseWebSocketFrame closeFrame = new CloseWebSocketFrame();
                 webSocketChannel.writeAndFlush(closeFrame).addListener(future -> {
                     channels = new ConcurrentHashMap<>();
@@ -350,7 +350,7 @@ public abstract class NettyStreamingService<T> {
     }
 
     public boolean isSocketOpen() {
-        return webSocketChannel.isOpen();
+        return webSocketChannel != null && webSocketChannel.isOpen();
     }
 
     public void useCompressedMessages(boolean compressedMessages) { this.compressedMessages = compressedMessages; }
