@@ -57,4 +57,9 @@ public class OkCoinStreamingExchange extends OkCoinExchange implements Streaming
     public void useCompressedMessages(boolean compressedMessages) {
         streamingService.useCompressedMessages(compressedMessages);
     }
+
+    @Override
+    public void close() throws Exception {
+        streamingService.close();
+    }
 }

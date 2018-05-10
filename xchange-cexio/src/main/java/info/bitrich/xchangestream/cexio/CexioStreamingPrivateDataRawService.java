@@ -10,11 +10,11 @@ import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.exceptions.ExchangeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Objects;
 
 public class CexioStreamingPrivateDataRawService extends JsonNettyStreamingService
         implements StreamingPrivateDataService {
@@ -59,8 +59,12 @@ public class CexioStreamingPrivateDataRawService extends JsonNettyStreamingServi
 
     @Override
     public Completable connect() {
-        Objects.requireNonNull(apiKey, "Private API requires for API key");
-        Objects.requireNonNull(apiSecret, "Private API requires for API secret key");
+        if (apiKey == null || apiKey.isEmpty()) {
+            throw new IllegalArgumentException("Private API requires for API key");
+        }
+        if (apiSecret == null || apiSecret.isEmpty()) {
+            throw new IllegalArgumentException("Private API requires for API secret key");
+        }
 
         return super.connect();
     }
@@ -110,7 +114,12 @@ public class CexioStreamingPrivateDataRawService extends JsonNettyStreamingServi
                     case AUTH:
                         CexioWebSocketAuthResponse response = deserialize(message, CexioWebSocketAuthResponse.class);
                         if (response != null && !response.isSuccess()) {
-                            LOG.error("Authentication error: {}", response.getData().getError());
+                            String error = String.format("Authentication error: %s", response.getData().getError());
+                            LOG.error(error);
+
+                            ExchangeException exception = new ExchangeException(error);
+                            subjectOrder.onError(exception);
+                            subjectTransaction.onError(exception);
                         }
                         subjectConnected.onNext(true);
                         break;

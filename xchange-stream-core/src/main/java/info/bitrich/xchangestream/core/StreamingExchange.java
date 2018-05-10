@@ -3,7 +3,7 @@ package info.bitrich.xchangestream.core;
 import io.reactivex.Completable;
 import org.knowm.xchange.Exchange;
 
-public interface StreamingExchange extends Exchange {
+public interface StreamingExchange extends Exchange, AutoCloseable {
     /**
      * Connects to the WebSocket API of the exchange.
      *
