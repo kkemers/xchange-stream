@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import info.bitrich.xchangestream.cexio.dto.*;
 import info.bitrich.xchangestream.core.StreamingPrivateDataService;
 import info.bitrich.xchangestream.service.netty.JsonNettyStreamingService;
+import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
 import org.knowm.xchange.dto.Order;
@@ -13,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class CexioStreamingPrivateDataRawService extends JsonNettyStreamingService
         implements StreamingPrivateDataService {
@@ -53,6 +55,14 @@ public class CexioStreamingPrivateDataRawService extends JsonNettyStreamingServi
 
     public Observable<CexioWebSocketTransaction> getTransactions() {
         return subjectTransaction.share();
+    }
+
+    @Override
+    public Completable connect() {
+        Objects.requireNonNull(apiKey, "Private API requires for API key");
+        Objects.requireNonNull(apiSecret, "Private API requires for API secret key");
+
+        return super.connect();
     }
 
     /**
