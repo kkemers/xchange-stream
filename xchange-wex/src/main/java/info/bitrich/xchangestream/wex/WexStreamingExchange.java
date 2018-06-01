@@ -58,9 +58,4 @@ public class WexStreamingExchange extends WexExchange implements StreamingExchan
     public void useCompressedMessages(boolean compressedMessages) {
         streamingService.useCompressedMessages(compressedMessages);
     }
-
-    @Override
-    public void close() throws Exception {
-
-    }
 }

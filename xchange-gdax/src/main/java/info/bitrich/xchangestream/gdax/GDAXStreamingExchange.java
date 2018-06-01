@@ -82,9 +82,4 @@ public class GDAXStreamingExchange extends GDAXExchange implements StreamingExch
     public void useCompressedMessages(boolean compressedMessages) {
         streamingService.useCompressedMessages(compressedMessages);
     }
-
-    @Override
-    public void close() throws Exception {
-        streamingService.close();
-    }
 }

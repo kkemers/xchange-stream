@@ -66,9 +66,4 @@ public class BitfinexStreamingExchange extends BitfinexExchange implements Strea
     public void useCompressedMessages(boolean compressedMessages) {
         streamingService.useCompressedMessages(compressedMessages);
     }
-
-    @Override
-    public void close() {
-        streamingService.close();
-    }
 }

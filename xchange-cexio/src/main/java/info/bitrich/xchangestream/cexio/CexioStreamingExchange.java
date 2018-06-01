@@ -53,9 +53,4 @@ public class CexioStreamingExchange extends CexIOExchange implements StreamingEx
         streamingPrivateDataService.setApiKey(apiKey);
         streamingPrivateDataService.setApiSecret(apiSecret);
     }
-
-    @Override
-    public void close() throws Exception {
-        streamingPrivateDataService.close();
-    }
 }

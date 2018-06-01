@@ -57,8 +57,4 @@ public class GeminiStreamingExchange extends GeminiExchange implements Streaming
     public void useCompressedMessages(boolean compressedMessages) {
         throw new NotYetImplementedForExchangeException();
     }
-
-    @Override
-    public void close() throws Exception {
-    }
 }

@@ -94,10 +94,5 @@ public class BinanceStreamingExchange extends BinanceExchange implements Streami
     public void useCompressedMessages(boolean compressedMessages) {
         streamingService.useCompressedMessages(compressedMessages);
     }
-
-    @Override
-    public void close() throws Exception {
-        streamingService.close();
-    }
 }
 

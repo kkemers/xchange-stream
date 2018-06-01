@@ -185,6 +185,7 @@ public abstract class NettyStreamingService<T> implements AutoCloseable {
             Runnable cleanup = () -> {
                 channels = new ConcurrentHashMap<>();
                 completable.onComplete();
+                close();
             };
 
             if (webSocketChannel == null || !webSocketChannel.isOpen()) {
