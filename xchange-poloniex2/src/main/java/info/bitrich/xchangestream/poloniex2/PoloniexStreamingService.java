@@ -83,7 +83,7 @@ public class PoloniexStreamingService extends JsonNettyStreamingService {
 
     @Override
     public Observable<JsonNode> subscribeChannel(String channelName, Object... args) {
-        if (!channels.containsKey(channelName)) {
+        if (!subscriptions.containsKey(channelName)) {
             Observable<JsonNode> subscription = super.subscribeChannel(channelName, args);
             subscriptions.put(channelName, subscription);
         }
