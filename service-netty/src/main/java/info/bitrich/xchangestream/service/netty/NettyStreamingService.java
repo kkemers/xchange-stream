@@ -185,7 +185,7 @@ public abstract class NettyStreamingService<T> implements AutoCloseable {
             Runnable cleanup = () -> {
                 channels = new ConcurrentHashMap<>();
                 completable.onComplete();
-                close();
+                eventLoopGroup.shutdownGracefully();
             };
 
             if (webSocketChannel == null || !webSocketChannel.isOpen()) {
@@ -198,11 +198,6 @@ public abstract class NettyStreamingService<T> implements AutoCloseable {
                 cleanup.run();
             });
         });
-    }
-
-    @Override
-    public void close() {
-        eventLoopGroup.shutdownGracefully();
     }
 
     protected abstract String getChannelNameFromMessage(T message) throws IOException;
@@ -354,7 +349,7 @@ public abstract class NettyStreamingService<T> implements AutoCloseable {
                 final Completable c = connect()
                         .doOnError(t -> LOG.warn("Problem with reconnect", t))
                         .retryWhen(new RetryWithDelay(retryDuration.toMillis()))
-                        .doOnComplete(() -> {
+                        .doOnTerminate(() -> {
                             LOG.info("Resubscribing channels");
                             resubscribeChannels();
                         });
