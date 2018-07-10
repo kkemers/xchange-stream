@@ -40,6 +40,7 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
+import io.reactivex.subjects.BehaviorSubject;
 
 public abstract class NettyStreamingService<T> {
     private final Logger LOG = LoggerFactory.getLogger(this.getClass());
@@ -67,6 +68,7 @@ public abstract class NettyStreamingService<T> {
     private final NioEventLoopGroup eventLoopGroup;
     protected Map<String, Subscription> channels = new ConcurrentHashMap<>();
     private boolean compressedMessages = false;
+    private BehaviorSubject<Boolean> connectedSubject = BehaviorSubject.createDefault(false);
 
     public NettyStreamingService(String apiUrl) {
         this(apiUrl, 65536);
@@ -163,12 +165,15 @@ public abstract class NettyStreamingService<T> {
                         handler.handshakeFuture().addListener(f -> {
                             if (f.isSuccess()) {
                                 completable.onComplete();
+                                connectedSubject.onNext(true);
                             } else {
                                 completable.onError(f.cause());
+                                connectedSubject.onNext(false);
                             }
                         });
                     } else {
                         completable.onError(future.cause());
+                        connectedSubject.onNext(false);
                     }
 
                 });
@@ -185,6 +190,7 @@ public abstract class NettyStreamingService<T> {
             Runnable cleanup = () -> {
                 channels = new ConcurrentHashMap<>();
                 completable.onComplete();
+                connectedSubject.onNext(false);
                 eventLoopGroup.shutdownGracefully();
             };
 
@@ -198,6 +204,10 @@ public abstract class NettyStreamingService<T> {
                 cleanup.run();
             });
         });
+    }
+
+    public Observable<Boolean> connected() {
+        return connectedSubject.distinctUntilChanged();
     }
 
     protected abstract String getChannelNameFromMessage(T message) throws IOException;
@@ -249,14 +259,20 @@ public abstract class NettyStreamingService<T> {
                 Subscription newSubscription = new Subscription(e, channelName, args);
                 channels.put(channelId, newSubscription);
                 try {
-                    sendMessage(getSubscribeMessage(channelName, args));
+                    String message = getSubscribeMessage(channelName, args);
+                    if (message != null) {
+                        sendMessage(message);
+                    }
                 } catch (IOException throwable) {
                     e.onError(throwable);
                 }
             }
         }).doOnDispose(() -> {
             if (channels.containsKey(channelId)) {
-                sendMessage(getUnsubscribeMessage(channelId));
+                String message = getUnsubscribeMessage(channelId);
+                if (message != null) {
+                    sendMessage(message);
+                }
                 channels.remove(channelId);
             }
         }).share();
@@ -266,7 +282,10 @@ public abstract class NettyStreamingService<T> {
         for (String channelId : channels.keySet()) {
             try {
                 Subscription subscription = channels.get(channelId);
-                sendMessage(getSubscribeMessage(subscription.channelName, subscription.args));
+                String message = getSubscribeMessage(subscription.channelName, subscription.args);
+                if (message != null) {
+                    sendMessage(message);
+                }
             } catch (IOException e) {
                 LOG.error("Failed to reconnect channel: {}", channelId);
             }

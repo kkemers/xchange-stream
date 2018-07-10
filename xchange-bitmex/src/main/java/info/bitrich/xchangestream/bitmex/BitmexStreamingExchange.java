@@ -5,6 +5,7 @@ import info.bitrich.xchangestream.core.StreamingExchange;
 import info.bitrich.xchangestream.core.StreamingMarketDataService;
 import info.bitrich.xchangestream.core.StreamingPrivateDataService;
 import io.reactivex.Completable;
+import io.reactivex.Observable;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.bitmex.BitmexExchange;
 import org.knowm.xchange.exceptions.NotYetImplementedForExchangeException;
@@ -68,6 +69,11 @@ public class BitmexStreamingExchange extends BitmexExchange implements Streaming
     @Override
     public boolean isAlive() {
         return streamingService.isSocketOpen();
+    }
+
+    @Override
+    public Observable<Boolean> ready() {
+        return streamingService.connected();
     }
 
     @Override

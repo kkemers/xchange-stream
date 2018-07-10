@@ -5,6 +5,7 @@ import info.bitrich.xchangestream.core.StreamingExchange;
 import info.bitrich.xchangestream.core.StreamingMarketDataService;
 import info.bitrich.xchangestream.core.StreamingPrivateDataService;
 import io.reactivex.Completable;
+import io.reactivex.Observable;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.exceptions.NotYetImplementedForExchangeException;
 import org.knowm.xchange.hitbtc.v2.HitbtcExchange;
@@ -41,6 +42,11 @@ public class HitbtcStreamingExchange extends HitbtcExchange implements Streaming
     @Override
     public boolean isAlive() {
         return streamingService.isSocketOpen();
+    }
+
+    @Override
+    public Observable<Boolean> ready() {
+        return streamingService.connected();
     }
 
     @Override

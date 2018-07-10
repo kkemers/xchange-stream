@@ -6,6 +6,7 @@ import info.bitrich.xchangestream.core.StreamingMarketDataService;
 import info.bitrich.xchangestream.core.StreamingPrivateDataService;
 import info.bitrich.xchangestream.service.netty.WebSocketClientHandler;
 import io.reactivex.Completable;
+import io.reactivex.Observable;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.exceptions.NotYetImplementedForExchangeException;
 import org.knowm.xchange.gdax.GDAXExchange;
@@ -76,6 +77,11 @@ public class GDAXStreamingExchange extends GDAXExchange implements StreamingExch
     @Override
     public boolean isAlive() {
         return streamingService != null && streamingService.isSocketOpen();
+    }
+
+    @Override
+    public Observable<Boolean> ready() {
+        return streamingService.connected();
     }
 
     @Override

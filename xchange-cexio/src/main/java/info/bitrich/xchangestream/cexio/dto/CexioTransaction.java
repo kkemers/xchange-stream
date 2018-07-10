@@ -1,13 +1,11 @@
 package info.bitrich.xchangestream.cexio.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import java.math.BigDecimal;
 import java.util.Date;
 
-public class CexioWebSocketTransaction {
+public class CexioTransaction {
 
     private final String id;
     private final String d;
@@ -33,30 +31,30 @@ public class CexioWebSocketTransaction {
     private final String status;
     private final String address;
 
-    public CexioWebSocketTransaction(@JsonProperty("id") String id,
-                                     @JsonProperty("d") String d,
-                                     @JsonProperty("c") String c,
-                                     @JsonProperty("a") BigDecimal a,
-                                     @JsonProperty("ds") BigDecimal ds,
-                                     @JsonProperty("cs") BigDecimal cs,
-                                     @JsonProperty("user") String user,
-                                     @JsonProperty("symbol") String symbol,
-                                     @JsonProperty("symbol2") String symbol2,
-                                     @JsonProperty("amount") BigDecimal amount,
-                                     @JsonProperty("order") Long order,
-                                     @JsonProperty("buy") Long buy,
-                                     @JsonProperty("sell") Long sell,
-                                     @JsonProperty("price") BigDecimal price,
-                                     @JsonProperty("type") String type,
-                                     @JsonProperty("time") Date time,
-                                     @JsonProperty("balance") BigDecimal balance,
-                                     @JsonProperty("fee_amount") BigDecimal feeAmount,
+    public CexioTransaction(@JsonProperty("id") String id,
+                            @JsonProperty("d") String d,
+                            @JsonProperty("c") String c,
+                            @JsonProperty("a") BigDecimal a,
+                            @JsonProperty("ds") BigDecimal ds,
+                            @JsonProperty("cs") BigDecimal cs,
+                            @JsonProperty("user") String user,
+                            @JsonProperty("symbol") String symbol,
+                            @JsonProperty("symbol2") String symbol2,
+                            @JsonProperty("amount") BigDecimal amount,
+                            @JsonProperty("order") Long order,
+                            @JsonProperty("buy") Long buy,
+                            @JsonProperty("sell") Long sell,
+                            @JsonProperty("price") BigDecimal price,
+                            @JsonProperty("type") String type,
+                            @JsonProperty("time") Date time,
+                            @JsonProperty("balance") BigDecimal balance,
+                            @JsonProperty("fee_amount") BigDecimal feeAmount,
 
-                                     // Balance operation specific data
-                                     @JsonProperty("txid") String txId,
-                                     @JsonProperty("confirmations") Long confirmations,
-                                     @JsonProperty("status") String status,
-                                     @JsonProperty("address") String address) {
+                            // Balance operation specific data
+                            @JsonProperty("txid") String txId,
+                            @JsonProperty("confirmations") Long confirmations,
+                            @JsonProperty("status") String status,
+                            @JsonProperty("address") String address) {
         this.id = id;
         this.d = d;
         this.c = c;
@@ -173,9 +171,9 @@ public class CexioWebSocketTransaction {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof CexioWebSocketTransaction)) return false;
+        if (!(o instanceof CexioTransaction)) return false;
 
-        CexioWebSocketTransaction that = (CexioWebSocketTransaction) o;
+        CexioTransaction that = (CexioTransaction) o;
 
         if (id != null ? !id.equals(that.id) : that.id != null) return false;
         if (d != null ? !d.equals(that.d) : that.d != null) return false;
