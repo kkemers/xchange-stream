@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.reactivex.disposables.Disposable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +47,8 @@ public abstract class NettyStreamingService<T> {
     private final Logger LOG = LoggerFactory.getLogger(this.getClass());
     private static final Duration DEFAULT_CONNECTION_TIMEOUT = Duration.ofSeconds(10);
     private static final Duration DEFAULT_RETRY_DURATION = Duration.ofSeconds(15);
+
+    private Disposable resubscribeDisposable;
 
     private class Subscription {
         final ObservableEmitter<T> emitter;
@@ -149,11 +152,11 @@ public abstract class NettyStreamingService<T> {
                                 handlers.add(new HttpClientCodec());
                                 if (compressedMessages) handlers.add(WebSocketClientCompressionHandler.INSTANCE);
                                 handlers.add(new HttpObjectAggregator(65536));
-                                
+
                                 if (clientExtensionHandler != null) {
-                                  handlers.add(clientExtensionHandler);
+                                    handlers.add(clientExtensionHandler);
                                 }
-                                
+
                                 handlers.add(handler);
                                 p.addLast(handlers.toArray(new ChannelHandler[handlers.size()]));
                             }
@@ -292,6 +295,14 @@ public abstract class NettyStreamingService<T> {
         }
     }
 
+    public boolean isSocketOpen() {
+        return webSocketChannel != null && webSocketChannel.isOpen();
+    }
+
+    public void useCompressedMessages(boolean compressedMessages) {
+        this.compressedMessages = compressedMessages;
+    }
+
     protected String getChannel(T message) {
         String channel;
         try {
@@ -312,7 +323,6 @@ public abstract class NettyStreamingService<T> {
         String channel = getChannel(message);
         handleChannelError(channel, t);
     }
-
 
     protected void handleChannelMessage(String channel, T message) {
         Subscription subscription = channels.get(channel);
@@ -364,22 +374,22 @@ public abstract class NettyStreamingService<T> {
         public void channelInactive(ChannelHandlerContext ctx) {
             if (!isManualDisconnect) {
                 super.channelInactive(ctx);
+
+                if (resubscribeDisposable != null && !resubscribeDisposable.isDisposed()) {
+                    LOG.info("Connection closed by the host at reconnect");
+                    return;
+                }
+
                 LOG.info("Reopening websocket because it was closed by the host");
-                final Completable c = connect()
-                        .doOnError(t -> LOG.warn("Problem with reconnect", t))
+
+                resubscribeDisposable = connect()
+                        .doOnError(t -> LOG.warn("Problem with reconnect: {}", t.getMessage(), t))
                         .retryWhen(new RetryWithDelay(retryDuration.toMillis()))
-                        .doOnTerminate(() -> {
+                        .subscribe(() -> {
                             LOG.info("Resubscribing channels");
                             resubscribeChannels();
                         });
-                c.subscribe();
             }
         }
     }
-
-    public boolean isSocketOpen() {
-        return webSocketChannel != null && webSocketChannel.isOpen();
-    }
-
-    public void useCompressedMessages(boolean compressedMessages) { this.compressedMessages = compressedMessages; }
 }
