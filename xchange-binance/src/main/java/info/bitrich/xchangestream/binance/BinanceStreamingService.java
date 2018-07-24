@@ -1,21 +1,14 @@
 package info.bitrich.xchangestream.binance;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.TextNode;
+import info.bitrich.xchangestream.binance.netty.BinanceWebSocketClientExtensionHandler;
 import info.bitrich.xchangestream.core.ProductSubscription;
 import info.bitrich.xchangestream.service.netty.JsonNettyStreamingService;
-import io.reactivex.Observable;
-import org.knowm.xchange.currency.CurrencyPair;
-import org.knowm.xchange.exceptions.NotYetImplementedForExchangeException;
+import io.netty.handler.codec.http.websocketx.extensions.WebSocketClientExtensionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 public class BinanceStreamingService extends JsonNettyStreamingService {
     private static final Logger LOG = LoggerFactory.getLogger(BinanceStreamingService.class);
@@ -67,5 +60,13 @@ public class BinanceStreamingService extends JsonNettyStreamingService {
         return productSubscription;
     }
 
-
+    /**
+     * Using our own extension handler to fix handshake error:
+     *  "io.netty.handler.codec.CodecException: invalid WebSocket Extension handshake for
+     *  "permessage-deflate; server_no_context_takeover; client_no_context_takeover"
+     */
+    @Override
+    protected WebSocketClientExtensionHandler getWebSocketClientExtensionHandler() {
+        return BinanceWebSocketClientExtensionHandler.INSTANCE;
+    }
 }
