@@ -5,6 +5,7 @@ import info.bitrich.xchangestream.core.StreamingExchange;
 import info.bitrich.xchangestream.core.StreamingMarketDataService;
 import info.bitrich.xchangestream.core.StreamingPrivateDataService;
 import io.reactivex.Completable;
+import io.reactivex.Observable;
 import org.knowm.xchange.binance.BinanceExchange;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.exceptions.NotAvailableFromExchangeException;
@@ -50,12 +51,21 @@ public class BinanceStreamingExchange extends BinanceExchange implements Streami
         BinanceStreamingService service = streamingService;
         streamingService = null;
         streamingMarketDataService = null;
+
+        if (service == null) {
+            return Completable.complete();
+        }
+
         return service.disconnect();
     }
 
     @Override
     public boolean isAlive() {
         return streamingService!= null && streamingService.isSocketOpen();
+    }
+
+    public Observable<Boolean> ready() {
+        return streamingService.connected();
     }
 
     @Override
@@ -91,7 +101,8 @@ public class BinanceStreamingExchange extends BinanceExchange implements Streami
     }
 
     @Override
-    public void useCompressedMessages(boolean compressedMessages) { streamingService.useCompressedMessages(compressedMessages); }
-
+    public void useCompressedMessages(boolean compressedMessages) {
+        streamingService.useCompressedMessages(compressedMessages);
+    }
 }
 

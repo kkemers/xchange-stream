@@ -8,6 +8,7 @@ import info.bitrich.xchangestream.core.StreamingExchange;
 import info.bitrich.xchangestream.core.StreamingMarketDataService;
 import info.bitrich.xchangestream.core.StreamingPrivateDataService;
 import io.reactivex.Completable;
+import io.reactivex.Observable;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
@@ -95,6 +96,11 @@ public class PoloniexStreamingExchange extends PoloniexExchange implements Strea
     @Override
     public boolean isAlive() {
         return streamingService.isSocketOpen();
+    }
+
+    @Override
+    public Observable<Boolean> ready() {
+        return streamingService.connected();
     }
 
     @Override

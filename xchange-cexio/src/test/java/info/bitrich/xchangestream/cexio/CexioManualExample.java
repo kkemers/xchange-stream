@@ -3,6 +3,7 @@ package info.bitrich.xchangestream.cexio;
 import info.bitrich.xchangestream.core.StreamingExchangeFactory;
 import info.bitrich.xchangestream.core.StreamingPrivateDataService;
 import org.knowm.xchange.ExchangeSpecification;
+import org.knowm.xchange.currency.CurrencyPair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,21 +25,30 @@ public class CexioManualExample {
 
         exchange.applySpecification(specification);
 
+        StreamingPrivateDataService streamingPrivateDataService = exchange.getStreamingPrivateDataService();
+        CexioStreamingPrivateDataRawService streamingPrivateDataRawService =
+                (CexioStreamingPrivateDataRawService) streamingPrivateDataService;
+
+        exchange.ready().subscribe(status -> LOG.info("Is ready: {}", status));
+
         exchange.connect().blockingAwait();
 
-        StreamingPrivateDataService streamingPrivateDataService = exchange.getStreamingPrivateDataService();
+        exchange.getStreamingMarketDataService().getOrderBook(CurrencyPair.BTC_USD)
+                .subscribe(it -> LOG.info("order book: {}", it),
+                           e -> LOG.error("Error getting order book: {}", e.getMessage(), e));
+
+        exchange.getStreamingMarketDataService().getTicker(CurrencyPair.BTC_USD)
+                .subscribe(it -> LOG.info("ticker: {}", it),
+                           e -> LOG.error("Error getting ticker: {}", e.getMessage(), e));
 
         streamingPrivateDataService.getOrders()
                 .subscribe(
                         order -> LOG.info("Order id={}, status={}, pair={}, remains={}",
-                                          order.getId(),
-                                          order.getStatus(),
-                                          order.getCurrencyPair(),
-                                          order.getRemainingAmount()),
+                                order.getId(),
+                                order.getStatus(),
+                                order.getCurrencyPair(),
+                                order.getRemainingAmount()),
                         throwable -> LOG.error("ERROR in getting order data: ", throwable));
-
-        CexioStreamingPrivateDataRawService streamingPrivateDataRawService =
-                (CexioStreamingPrivateDataRawService) streamingPrivateDataService;
 
         streamingPrivateDataRawService.getTransactions()
                 .subscribe(

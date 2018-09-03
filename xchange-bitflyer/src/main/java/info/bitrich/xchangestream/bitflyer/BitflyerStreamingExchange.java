@@ -6,6 +6,7 @@ import info.bitrich.xchangestream.core.StreamingMarketDataService;
 import info.bitrich.xchangestream.core.StreamingPrivateDataService;
 import info.bitrich.xchangestream.service.pubnub.PubnubStreamingService;
 import io.reactivex.Completable;
+import io.reactivex.Observable;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.bitflyer.BitflyerExchange;
 import org.knowm.xchange.exceptions.NotYetImplementedForExchangeException;
@@ -65,6 +66,10 @@ public class BitflyerStreamingExchange extends BitflyerExchange implements Strea
     @Override
     public boolean isAlive() {
         return streamingService.isAlive();
+    }
+
+    public Observable<Boolean> ready() {
+        throw new RuntimeException("Not implemented");
     }
 
     @Override

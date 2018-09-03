@@ -6,6 +6,7 @@ import info.bitrich.xchangestream.core.StreamingMarketDataService;
 import info.bitrich.xchangestream.core.StreamingPrivateDataService;
 import info.bitrich.xchangestream.service.pusher.PusherStreamingService;
 import io.reactivex.Completable;
+import io.reactivex.Observable;
 import org.knowm.xchange.bitstamp.BitstampExchange;
 import org.knowm.xchange.exceptions.NotAvailableFromExchangeException;
 
@@ -48,6 +49,10 @@ public class BitstampStreamingExchange extends BitstampExchange implements Strea
     @Override
     public boolean isAlive() {
         return this.streamingService.isSocketOpen();
+    }
+
+    public Observable<Boolean> ready() {
+        throw new RuntimeException("Not implemented");
     }
 
     @Override
