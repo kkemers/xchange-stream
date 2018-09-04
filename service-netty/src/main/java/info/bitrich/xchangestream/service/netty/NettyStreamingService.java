@@ -8,7 +8,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
+import info.bitrich.xchangestream.service.netty.strategy.HeartbeatStrategy;
+import info.bitrich.xchangestream.service.netty.strategy.DefaultHeartbeatStrategy;
+import io.netty.handler.codec.http.websocketx.*;
 import io.reactivex.disposables.Disposable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,12 +32,6 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.WebSocketClientHandshaker;
-import io.netty.handler.codec.http.websocketx.WebSocketClientHandshakerFactory;
-import io.netty.handler.codec.http.websocketx.WebSocketFrame;
-import io.netty.handler.codec.http.websocketx.WebSocketVersion;
 import io.netty.handler.codec.http.websocketx.extensions.WebSocketClientExtensionHandler;
 import io.netty.handler.codec.http.websocketx.extensions.compression.WebSocketClientCompressionHandler;
 import io.netty.handler.ssl.SslContext;
@@ -45,17 +43,16 @@ import io.reactivex.subjects.BehaviorSubject;
 
 public abstract class NettyStreamingService<T> {
     private final Logger LOG = LoggerFactory.getLogger(this.getClass());
-    private static final Duration DEFAULT_CONNECTION_TIMEOUT = Duration.ofSeconds(10);
-    private static final Duration DEFAULT_RETRY_DURATION = Duration.ofSeconds(15);
 
-    private Disposable resubscribeDisposable;
+    public static final Duration DEFAULT_CONNECTION_TIMEOUT = Duration.ofSeconds(10);
+    public static final Duration DEFAULT_RETRY_DURATION = Duration.ofSeconds(15);
 
     private class Subscription {
         final ObservableEmitter<T> emitter;
         final String channelName;
         final Object[] args;
 
-        public Subscription(ObservableEmitter<T> emitter, String channelName, Object[] args) {
+        Subscription(ObservableEmitter<T> emitter, String channelName, Object[] args) {
             this.emitter = emitter;
             this.channelName = channelName;
             this.args = args;
@@ -64,27 +61,36 @@ public abstract class NettyStreamingService<T> {
 
     private final int maxFramePayloadLength;
     private final URI uri;
+    private final Duration retryDuration;
+    private final Duration connectionTimeout;
+    private final HeartbeatStrategy heartbeatStrategy;
+
+    private final NioEventLoopGroup eventLoopGroup;
+    protected final Map<String, Subscription> channels = new ConcurrentHashMap<>();
+
+    private final BehaviorSubject<Boolean> connectedSubject = BehaviorSubject.createDefault(false);
+
+    private Disposable resubscribeDisposable;
+    private Disposable pingDisposable;
+    private boolean compressedMessages = false;
     private boolean isManualDisconnect = false;
     private Channel webSocketChannel;
-    private Duration retryDuration;
-    private Duration connectionTimeout;
-    private final NioEventLoopGroup eventLoopGroup;
-    protected Map<String, Subscription> channels = new ConcurrentHashMap<>();
-    private boolean compressedMessages = false;
-    private BehaviorSubject<Boolean> connectedSubject = BehaviorSubject.createDefault(false);
 
     public NettyStreamingService(String apiUrl) {
         this(apiUrl, 65536);
     }
 
     public NettyStreamingService(String apiUrl, int maxFramePayloadLength) {
-        this(apiUrl, maxFramePayloadLength, DEFAULT_CONNECTION_TIMEOUT, DEFAULT_RETRY_DURATION);
+        this(apiUrl, maxFramePayloadLength, DEFAULT_CONNECTION_TIMEOUT, DEFAULT_RETRY_DURATION,
+                new DefaultHeartbeatStrategy());
     }
 
-    public NettyStreamingService(String apiUrl, int maxFramePayloadLength, Duration connectionTimeout, Duration retryDuration) {
+    public NettyStreamingService(String apiUrl, int maxFramePayloadLength, Duration connectionTimeout,
+                                 Duration retryDuration, HeartbeatStrategy heartbeatStrategy) {
         try {
             this.maxFramePayloadLength = maxFramePayloadLength;
             this.retryDuration = retryDuration;
+            this.heartbeatStrategy = heartbeatStrategy;
             this.connectionTimeout = connectionTimeout;
             this.uri = new URI(apiUrl);
             this.eventLoopGroup = new NioEventLoopGroup();
@@ -168,15 +174,15 @@ public abstract class NettyStreamingService<T> {
                         handler.handshakeFuture().addListener(f -> {
                             if (f.isSuccess()) {
                                 completable.onComplete();
-                                connectedSubject.onNext(true);
+                                onConnected();
                             } else {
                                 completable.onError(f.cause());
-                                connectedSubject.onNext(false);
+                                onDisconnected();
                             }
                         });
                     } else {
                         completable.onError(future.cause());
-                        connectedSubject.onNext(false);
+                        onDisconnected();
                     }
 
                 });
@@ -191,9 +197,9 @@ public abstract class NettyStreamingService<T> {
         return Completable.create(completable -> {
 
             Runnable cleanup = () -> {
-                channels = new ConcurrentHashMap<>();
+                channels.clear();
                 completable.onComplete();
-                connectedSubject.onNext(false);
+                onDisconnected();
                 eventLoopGroup.shutdownGracefully();
             };
 
@@ -372,6 +378,9 @@ public abstract class NettyStreamingService<T> {
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
+
+            onDisconnected();
+
             if (!isManualDisconnect) {
                 super.channelInactive(ctx);
 
@@ -391,5 +400,40 @@ public abstract class NettyStreamingService<T> {
                         });
             }
         }
+    }
+
+    private void onDisconnected() {
+        connectedSubject.onNext(false);
+
+        if (pingDisposable != null) {
+            pingDisposable.dispose();
+        }
+    }
+
+    private void onConnected() {
+        connectedSubject.onNext(true);
+
+        if (heartbeatStrategy != null) {
+            long period = heartbeatStrategy.getPeriod().getSeconds();
+            pingDisposable = Observable.interval(period, TimeUnit.SECONDS).subscribe(unused -> {
+                sendPing(heartbeatStrategy.getHeartbeatFrame());
+            });
+        }
+    }
+
+    private void sendPing(WebSocketFrame frame) {
+        LOG.debug("Sending ping: {}", frame);
+
+        if (webSocketChannel == null || !webSocketChannel.isOpen()) {
+            LOG.warn("WebSocket is not open! Call connect first.");
+            return;
+        }
+
+        if (!webSocketChannel.isWritable()) {
+            LOG.warn("Cannot send data to WebSocket as it is not writable.");
+            return;
+        }
+
+        webSocketChannel.writeAndFlush(frame);
     }
 }
