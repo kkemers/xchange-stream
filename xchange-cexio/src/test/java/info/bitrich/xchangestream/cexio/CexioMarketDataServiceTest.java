@@ -14,11 +14,13 @@ import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.*;
 
 public class CexioMarketDataServiceTest {
 
@@ -74,9 +76,12 @@ public class CexioMarketDataServiceTest {
                         .limitPrice(BigDecimal.valueOf(6707.9))
                         .originalAmount(BigDecimal.valueOf(100000000))
                         .build());
-        OrderBook expected = new OrderBook(null, buys, sells);
 
         test.assertNoErrors();
-        test.assertValue(expected);
+        test.assertValue(orderBook -> {
+            assertThat(orderBook.getBids()).isEqualTo(sells);
+            assertThat(orderBook.getAsks()).isEqualTo(buys);
+            return true;
+        });
     }
 }
