@@ -26,6 +26,7 @@ public class CexioStreamingService extends JsonNettyStreamingService {
     public static final String ORDER = "order";
     public static final String TRANSACTION = "tx";
     public static final String SUBSCRIBE = "subscribe";
+    public static final String UNSUBSCRIBE = "unsubscribe";
     public static final String MARKET_DEPTH = "md";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -58,13 +59,22 @@ public class CexioStreamingService extends JsonNettyStreamingService {
         String room = (String) args[0];
 
         CexioSubscriptionMessage message = new CexioSubscriptionMessage(room);
-        ObjectMapper objectMapper = new ObjectMapper();
         return objectMapper.writeValueAsString(message);
     }
 
     @Override
-    public String getUnsubscribeMessage(String channelName) throws IOException {
-        return null;
+    public String getUnsubscribeMessage(String channelName, Object... args) throws IOException {
+        if (!channelName.equals(CexioStreamingService.MARKET_DEPTH)) {
+            return null;
+        }
+
+        if (args.length != 1) {
+            throw new IllegalArgumentException("Wrong arguments count");
+        }
+        String room = (String) args[0];
+
+        CexioUnsubscribeMessage message = new CexioUnsubscribeMessage(room);
+        return objectMapper.writeValueAsString(message);
     }
 
     @Override

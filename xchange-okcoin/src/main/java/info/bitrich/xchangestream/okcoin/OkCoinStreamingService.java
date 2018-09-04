@@ -28,7 +28,7 @@ public class OkCoinStreamingService extends JsonNettyStreamingService {
     }
 
     @Override
-    public String getUnsubscribeMessage(String channelName) throws IOException {
+    public String getUnsubscribeMessage(String channelName, Object... args) throws IOException {
         WebSocketMessage webSocketMessage = new WebSocketMessage("removeChannel", channelName);
 
         ObjectMapper objectMapper = new ObjectMapper();

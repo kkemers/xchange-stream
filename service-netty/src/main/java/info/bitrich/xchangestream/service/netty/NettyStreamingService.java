@@ -223,7 +223,7 @@ public abstract class NettyStreamingService<T> {
 
     public abstract String getSubscribeMessage(String channelName, Object... args) throws IOException;
 
-    public abstract String getUnsubscribeMessage(String channelName) throws IOException;
+    public abstract String getUnsubscribeMessage(String channelName, Object... args) throws IOException;
 
     public String getSubscriptionUniqueId(String channelName, Object... args) {
         return channelName;
@@ -278,7 +278,7 @@ public abstract class NettyStreamingService<T> {
             }
         }).doOnDispose(() -> {
             if (channels.containsKey(channelId)) {
-                String message = getUnsubscribeMessage(channelId);
+                String message = getUnsubscribeMessage(channelId, args);
                 if (message != null) {
                     sendMessage(message);
                 }
