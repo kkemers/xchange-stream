@@ -68,7 +68,7 @@ public abstract class NettyStreamingService<T> {
     private Channel webSocketChannel;
     private Duration retryDuration;
     private Duration connectionTimeout;
-    private final NioEventLoopGroup eventLoopGroup;
+    private NioEventLoopGroup eventLoopGroup;
     protected Map<String, Subscription> channels = new ConcurrentHashMap<>();
     private boolean compressedMessages = false;
     private BehaviorSubject<Boolean> connectedSubject = BehaviorSubject.createDefault(false);
@@ -87,7 +87,6 @@ public abstract class NettyStreamingService<T> {
             this.retryDuration = retryDuration;
             this.connectionTimeout = connectionTimeout;
             this.uri = new URI(apiUrl);
-            this.eventLoopGroup = new NioEventLoopGroup();
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException("Error parsing URI " + apiUrl, e);
         }
@@ -136,6 +135,8 @@ public abstract class NettyStreamingService<T> {
                         this::messageHandler);
 
                 Bootstrap b = new Bootstrap();
+                eventLoopGroup = new NioEventLoopGroup();
+
                 b.group(eventLoopGroup)
                         .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, java.lang.Math.toIntExact(connectionTimeout.toMillis()))
                         .channel(NioSocketChannel.class)
@@ -194,7 +195,9 @@ public abstract class NettyStreamingService<T> {
                 channels = new ConcurrentHashMap<>();
                 completable.onComplete();
                 connectedSubject.onNext(false);
-                eventLoopGroup.shutdownGracefully();
+                if (eventLoopGroup != null) {
+                    eventLoopGroup.shutdownGracefully();
+                }
             };
 
             if (webSocketChannel == null || !webSocketChannel.isOpen()) {
