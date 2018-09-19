@@ -141,7 +141,10 @@ public class BitfinexStreamingService extends JsonNettyStreamingService {
             }
         }
 
-        if (channelId == null) throw new IOException("Can't find channel unique name");
+        if (channelId == null) {
+            LOG.warn( "Can't find channel unique name '{}'", channelName);
+            return null;
+        }
 
         BitfinexWebSocketUnSubscriptionMessage subscribeMessage =
                 new BitfinexWebSocketUnSubscriptionMessage(channelId);
