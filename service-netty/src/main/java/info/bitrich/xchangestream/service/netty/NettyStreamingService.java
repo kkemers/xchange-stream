@@ -65,11 +65,11 @@ public abstract class NettyStreamingService<T> {
     private final Duration connectionTimeout;
     private final HeartbeatStrategy heartbeatStrategy;
 
-    private final NioEventLoopGroup eventLoopGroup;
     protected final Map<String, Subscription> channels = new ConcurrentHashMap<>();
 
     private final BehaviorSubject<Boolean> connectedSubject = BehaviorSubject.createDefault(false);
 
+    private NioEventLoopGroup eventLoopGroup;
     private Disposable resubscribeDisposable;
     private Disposable pingDisposable;
     private boolean compressedMessages = false;
@@ -93,7 +93,6 @@ public abstract class NettyStreamingService<T> {
             this.heartbeatStrategy = heartbeatStrategy;
             this.connectionTimeout = connectionTimeout;
             this.uri = new URI(apiUrl);
-            this.eventLoopGroup = new NioEventLoopGroup();
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException("Error parsing URI " + apiUrl, e);
         }
@@ -140,6 +139,8 @@ public abstract class NettyStreamingService<T> {
                 final WebSocketClientHandler handler = getWebSocketClientHandler(WebSocketClientHandshakerFactory.newHandshaker(
                         uri, WebSocketVersion.V13, null, true, new DefaultHttpHeaders(), maxFramePayloadLength),
                         this::messageHandler);
+
+                this.eventLoopGroup = new NioEventLoopGroup();
 
                 Bootstrap b = new Bootstrap();
                 b.group(eventLoopGroup)
@@ -200,7 +201,9 @@ public abstract class NettyStreamingService<T> {
                 channels.clear();
                 completable.onComplete();
                 onDisconnected();
-                eventLoopGroup.shutdownGracefully();
+                if (eventLoopGroup != null) {
+                    eventLoopGroup.shutdownGracefully();
+                }
             };
 
             if (webSocketChannel == null || !webSocketChannel.isOpen()) {
@@ -209,9 +212,7 @@ public abstract class NettyStreamingService<T> {
             }
 
             CloseWebSocketFrame closeFrame = new CloseWebSocketFrame();
-            webSocketChannel.writeAndFlush(closeFrame).addListener(future -> {
-                cleanup.run();
-            });
+            webSocketChannel.writeAndFlush(closeFrame).addListener(future -> cleanup.run());
         });
     }
 
