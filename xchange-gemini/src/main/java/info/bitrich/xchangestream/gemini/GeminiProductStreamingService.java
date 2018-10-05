@@ -24,7 +24,7 @@ public class GeminiProductStreamingService extends JsonNettyStreamingService {
 
     @Override
     public void messageHandler(String message) {
-        LOG.debug("Received message: {}", message);
+        LOG.trace("Received message: {}", message);
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode jsonNode;
 

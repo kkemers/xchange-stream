@@ -423,7 +423,7 @@ public abstract class NettyStreamingService<T> {
     }
 
     private void sendPing(WebSocketFrame frame) {
-        LOG.debug("Sending ping: {}", frame);
+        LOG.trace("Sending ping: {}", frame);
 
         if (webSocketChannel == null || !webSocketChannel.isOpen()) {
             LOG.warn("WebSocket is not open! Call connect first.");
