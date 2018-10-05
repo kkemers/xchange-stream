@@ -13,7 +13,10 @@ import java.util.concurrent.TimeUnit;
 import info.bitrich.xchangestream.service.netty.strategy.HeartbeatStrategy;
 import info.bitrich.xchangestream.service.netty.strategy.DefaultHeartbeatStrategy;
 import io.netty.handler.codec.http.websocketx.*;
+import io.reactivex.*;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.subjects.PublishSubject;
+import io.reactivex.subjects.Subject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,9 +39,6 @@ import io.netty.handler.codec.http.websocketx.extensions.WebSocketClientExtensio
 import io.netty.handler.codec.http.websocketx.extensions.compression.WebSocketClientCompressionHandler;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
-import io.reactivex.Completable;
-import io.reactivex.Observable;
-import io.reactivex.ObservableEmitter;
 import io.reactivex.subjects.BehaviorSubject;
 
 public abstract class NettyStreamingService<T> {
@@ -48,12 +48,12 @@ public abstract class NettyStreamingService<T> {
     public static final Duration DEFAULT_RETRY_DURATION = Duration.ofSeconds(15);
 
     private class Subscription {
-        final ObservableEmitter<T> emitter;
+        final Subject<T> subject;
         final String channelName;
         final Object[] args;
 
-        Subscription(ObservableEmitter<T> emitter, String channelName, Object[] args) {
-            this.emitter = emitter;
+        Subscription(Subject<T> subject, String channelName, Object[] args) {
+            this.subject = subject;
             this.channelName = channelName;
             this.args = args;
         }
@@ -257,35 +257,51 @@ public abstract class NettyStreamingService<T> {
     }
 
     public Observable<T> subscribeChannel(String channelName, Object... args) {
+
         final String channelId = getSubscriptionUniqueId(channelName, args);
-        LOG.info("Subscribing to channel {}", channelId);
 
-        return Observable.<T>create(e -> {
-            if (webSocketChannel == null || !webSocketChannel.isOpen()) {
-                e.onError(new NotConnectedException());
-            }
+        Subject<T> observable;
 
-            if (!channels.containsKey(channelId)) {
-                Subscription newSubscription = new Subscription(e, channelName, args);
-                channels.put(channelId, newSubscription);
-                try {
-                    String message = getSubscribeMessage(channelName, args);
-                    if (message != null) {
-                        sendMessage(message);
-                    }
-                } catch (IOException throwable) {
-                    e.onError(throwable);
-                }
-            }
-        }).doOnDispose(() -> {
-            if (channels.containsKey(channelId)) {
-                String message = getUnsubscribeMessage(channelId, args);
+        if (!channels.containsKey(channelId)) {
+            LOG.info("Subscribing to channel {}", channelId);
+
+            PublishSubject<T> subject = PublishSubject.create();
+            observable = subject;
+
+            Subscription newSubscription = new Subscription(subject, channelName, args);
+            channels.put(channelId, newSubscription);
+            try {
+                String message = getSubscribeMessage(channelName, args);
                 if (message != null) {
                     sendMessage(message);
                 }
-                channels.remove(channelId);
+            } catch (IOException throwable) {
+                subject.onError(throwable);
             }
-        }).share();
+        } else {
+            LOG.debug("Subscribing to existing channel {}", channelId);
+            observable = channels.get(channelId).subject;
+        }
+
+        return observable.doFinally(() -> {
+
+            if (observable.hasObservers()) {
+                return;
+            }
+
+            if (!channels.containsKey(channelId)) {
+                LOG.warn("Unsubscribe from unexisting channel {}", channelId);
+                return;
+            }
+
+            LOG.info("Unsubscribe from channel {}", channelId);
+
+            String message = getUnsubscribeMessage(channelId, args);
+            if (message != null) {
+                sendMessage(message);
+            }
+            channels.remove(channelId);
+        });
     }
 
     public void resubscribeChannels() {
@@ -338,13 +354,13 @@ public abstract class NettyStreamingService<T> {
             return;
         }
 
-        ObservableEmitter<T> emitter = subscription.emitter;
-        if (emitter == null) {
+        Observer<T> observer = subscription.subject;
+        if (observer == null) {
             LOG.debug("No subscriber for channel {}.", channel);
             return;
         }
 
-        emitter.onNext(message);
+        observer.onNext(message);
     }
 
     protected void handleChannelError(String channel, Throwable t) {
@@ -354,13 +370,13 @@ public abstract class NettyStreamingService<T> {
             return;
         }
 
-        ObservableEmitter<T> emitter = subscription.emitter;
-        if (emitter == null) {
+        Observer<T> observer = subscription.subject;
+        if (observer == null) {
             LOG.debug("No subscriber for channel {}.", channel);
             return;
         }
 
-        emitter.onError(t);
+        observer.onError(t);
     }
 
     protected WebSocketClientExtensionHandler getWebSocketClientExtensionHandler() {
