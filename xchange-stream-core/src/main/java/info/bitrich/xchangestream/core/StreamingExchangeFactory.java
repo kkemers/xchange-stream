@@ -31,10 +31,10 @@ public enum StreamingExchangeFactory {
     }
 
     /**
-     * Create an Exchange object without default ExchangeSpecification
+     * Create an StreamingExchange object without default ExchangeSpecification
      * <p>
      * The factory is parameterised with the name of the exchange implementation class. This must be a class extending
-     * {@link org.knowm.xchange.Exchange}.
+     * {@link info.bitrich.xchangestream.core.StreamingExchange}.
      * </p>
      *
      * @param exchangeClassName the fully-qualified class name of the exchange
@@ -73,10 +73,10 @@ public enum StreamingExchangeFactory {
     }
 
     /**
-     * Create an Exchange object with default ExchangeSpecification
+     * Create an StreamingExchange object with default ExchangeSpecification
      * <p>
      * The factory is parameterised with the name of the exchange implementation class. This must be a class extending
-     * {@link org.knowm.xchange.Exchange}.
+     * {@link info.bitrich.xchangestream.core.StreamingExchange}.
      * </p>
      *
      * @param exchangeClassName the fully-qualified class name of the exchange
@@ -94,6 +94,44 @@ public enum StreamingExchangeFactory {
 
     }
 
+    /**
+     * Create an StreamingExchange object with default ExchangeSpecification with authentication info and API
+     * keys provided through parameters
+     *
+     * <p>The factory is parameterized with the name of the exchange implementation class. This must
+     * be a class extending {@link info.bitrich.xchangestream.core.StreamingExchange}.
+     *
+     * @param exchangeClassName the fully-qualified class name of the exchange
+     * @param apiKey the public API key
+     * @param secretKey the secret API key
+     * @return a new exchange instance configured with the default {@link org.knowm.xchange.ExchangeSpecification}
+     */
+    public StreamingExchange createExchange(String exchangeClassName, String apiKey, String secretKey) {
+
+        Assert.notNull(exchangeClassName, "exchangeClassName cannot be null");
+
+        LOG.debug("Creating default exchange from class name");
+
+        StreamingExchange exchange = createExchangeWithoutSpecification(exchangeClassName);
+
+        ExchangeSpecification defaultExchangeSpecification = exchange.getDefaultExchangeSpecification();
+        if (apiKey != null) {
+            defaultExchangeSpecification.setApiKey(apiKey);
+        }
+        if (secretKey != null) {
+            defaultExchangeSpecification.setSecretKey(secretKey);
+        }
+        exchange.applySpecification(defaultExchangeSpecification);
+
+        return exchange;
+    }
+
+    /**
+     * Create an StreamingExchange object default ExchangeSpecification
+     *
+     * @param exchangeSpecification the exchange specification
+     * @return a new exchange instance configured with the provided {@link org.knowm.xchange.ExchangeSpecification}
+     */
     public StreamingExchange createExchange(ExchangeSpecification exchangeSpecification) {
 
         Assert.notNull(exchangeSpecification, "exchangeSpecfication cannot be null");

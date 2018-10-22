@@ -4,12 +4,10 @@ import info.bitrich.xchangestream.core.ProductSubscription;
 import info.bitrich.xchangestream.core.StreamingExchange;
 import info.bitrich.xchangestream.core.StreamingMarketDataService;
 import info.bitrich.xchangestream.core.StreamingPrivateDataService;
-
 import io.reactivex.Completable;
 import io.reactivex.Observable;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.bitfinex.v1.BitfinexExchange;
-import org.knowm.xchange.exceptions.NotYetImplementedForExchangeException;
 
 /**
  * Created by Lukas Zaoralek on 7.11.17.
@@ -19,15 +17,23 @@ public class BitfinexStreamingExchange extends BitfinexExchange implements Strea
 
     private final BitfinexStreamingService streamingService;
     private BitfinexStreamingMarketDataService streamingMarketDataService;
+    private BitfinexStreamingPrivateDataService streamingPrivateDataService;
 
     public BitfinexStreamingExchange() {
-        this.streamingService = new BitfinexStreamingService(API_URI);
+        this.streamingService = new BitfinexStreamingService(this, API_URI);
+    }
+
+    BitfinexStreamingExchange(BitfinexStreamingService streamingService) {
+        this.streamingService = streamingService;
+        streamingMarketDataService = new BitfinexStreamingMarketDataService(streamingService);
+        streamingPrivateDataService = new BitfinexStreamingPrivateDataService(streamingService);
     }
 
     @Override
     protected void initServices() {
         super.initServices();
         streamingMarketDataService = new BitfinexStreamingMarketDataService(streamingService);
+        streamingPrivateDataService = new BitfinexStreamingPrivateDataService(streamingService);
     }
 
     @Override
@@ -64,7 +70,7 @@ public class BitfinexStreamingExchange extends BitfinexExchange implements Strea
 
     @Override
     public StreamingPrivateDataService getStreamingPrivateDataService() {
-        throw new NotYetImplementedForExchangeException();
+        return streamingPrivateDataService;
     }
 
     @Override

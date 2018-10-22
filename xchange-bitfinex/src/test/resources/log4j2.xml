@@ -6,8 +6,8 @@
         </Console>
     </Appenders>
     <Loggers>
-        <Logger name="io.netty" level="warn"/>
-        <Root level="INFO">
+        <Logger name="io.netty" level="trace"/>
+        <Root level="DEBUG">
             <AppenderRef ref="Console"/>
         </Root>
     </Loggers>
