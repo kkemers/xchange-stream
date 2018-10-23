@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by Lukas Zaoralek on 7.11.17.
@@ -34,7 +35,7 @@ public class BitfinexStreamingService extends JsonNettyStreamingService {
     private static final int SUBSCRIPTION_FAILED = 10300;
     private static final String PRIVATE_CHANNEL_ID = "0";
 
-    private final Map<String, String> subscribedChannels = new HashMap<>();
+    private final Map<String, String> subscribedChannels = new ConcurrentHashMap<>();
     private final StreamingExchange streamingExchange;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
