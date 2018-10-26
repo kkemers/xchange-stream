@@ -85,7 +85,7 @@ public class BitfinexPrivateApiTests {
         LimitOrder expected = new LimitOrder.Builder(Order.OrderType.BID, CurrencyPair.BTC_USD)
                 .id("22222222222")
                 .currencyPair(CurrencyPair.BTC_USD)
-                .orderType(Order.OrderType.BID)
+                .orderType(Order.OrderType.ASK)
                 .orderStatus(Order.OrderStatus.NEW)
                 .timestamp(new Date(1540205421889L))
                 .originalAmount(new BigDecimal("0.02"))

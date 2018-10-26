@@ -32,24 +32,24 @@ public class BitfinexStreamingAdapters {
 
     private static Order adaptMarketOrder(BitfinexWebSocketOrder order) {
         MarketOrder.Builder builder = (MarketOrder.Builder) new MarketOrder.Builder(
-                adaptType(order.getAmount()), adaptSymbol(order.getSymbol()))
+                adaptType(order.getAmountOrig()), adaptSymbol(order.getSymbol()))
                 .id(String.valueOf(order.getId()))
                 .averagePrice(order.getPriceAvg())
                 .orderStatus(adaptStatus(order.getOrderStatus()))
-                .originalAmount(order.getAmountOrig())
-                .remainingAmount(order.getAmount())
+                .originalAmount(adaptAmount(order.getAmountOrig()))
+                .remainingAmount(adaptAmount(order.getAmount()))
                 .timestamp(DateUtils.fromMillisUtc(order.getMtsCreate()));
         return builder.build();
     }
 
     private static Order adaptLimitOrder(BitfinexWebSocketOrder order) {
-        return new LimitOrder.Builder(adaptType(order.getAmount()), adaptSymbol(order.getSymbol()))
+        return new LimitOrder.Builder(adaptType(order.getAmountOrig()), adaptSymbol(order.getSymbol()))
                 .id(String.valueOf(order.getId()))
                 .limitPrice(order.getPrice())
                 .averagePrice(order.getPriceAvg())
                 .orderStatus(adaptStatus(order.getOrderStatus()))
-                .originalAmount(order.getAmountOrig())
-                .remainingAmount(order.getAmount())
+                .originalAmount(adaptAmount(order.getAmountOrig()))
+                .remainingAmount(adaptAmount(order.getAmount()))
                 .timestamp(DateUtils.fromMillisUtc(order.getMtsCreate()))
                 .build();
     }
@@ -94,5 +94,9 @@ public class BitfinexStreamingAdapters {
             return Order.OrderType.ASK;
         }
         throw new IllegalStateException("Amount is zero");
+    }
+
+    private static BigDecimal adaptAmount(BigDecimal amount) {
+        return amount.abs();
     }
 }

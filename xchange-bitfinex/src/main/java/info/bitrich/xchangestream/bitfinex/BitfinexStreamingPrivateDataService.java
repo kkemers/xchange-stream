@@ -22,14 +22,14 @@ public class BitfinexStreamingPrivateDataService implements StreamingPrivateData
         Observable<BitfinexWebSocketOrder> orderSnapshot = streamingService.subscribeChannel("os")
                 .map(json -> mapper.convertValue(json.get(2), BitfinexWebSocketOrder[].class))
                 .flatMap(Observable::fromArray);
-        Observable<BitfinexWebSocketOrder> orderPlaced = streamingService.subscribeChannel("on")
+        Observable<BitfinexWebSocketOrder> on = streamingService.subscribeChannel("on")
                 .map(json -> mapper.convertValue(json.get(2), BitfinexWebSocketOrder.class));
-        Observable<BitfinexWebSocketOrder> orderUpdated = streamingService.subscribeChannel("ou")
+        Observable<BitfinexWebSocketOrder> ou = streamingService.subscribeChannel("ou")
                 .map(json -> mapper.convertValue(json.get(2), BitfinexWebSocketOrder.class));
-        Observable<BitfinexWebSocketOrder> orderCanceled = streamingService.subscribeChannel("oc")
+        Observable<BitfinexWebSocketOrder> oc = streamingService.subscribeChannel("oc")
                 .map(json -> mapper.convertValue(json.get(2), BitfinexWebSocketOrder.class));
 
-        return Observable.merge(orderSnapshot, orderPlaced, orderUpdated, orderCanceled)
+        return Observable.merge(orderSnapshot, on, ou, oc)
                 .map(BitfinexStreamingAdapters::adaptOrder);
     }
 }

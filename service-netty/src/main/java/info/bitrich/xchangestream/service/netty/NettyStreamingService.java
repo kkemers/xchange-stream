@@ -238,7 +238,7 @@ public abstract class NettyStreamingService<T> {
     public abstract void messageHandler(String message);
 
     public void sendMessage(String message) {
-        LOG.debug("<=: {}", message);
+        LOG.trace("<=: {}", message);
 
         if (webSocketChannel == null || !webSocketChannel.isOpen()) {
             LOG.warn("WebSocket is not open! Call connect first.");
@@ -339,7 +339,7 @@ public abstract class NettyStreamingService<T> {
 
     protected void handleMessage(T message) {
 
-        LOG.debug("=>: {}", message);
+        LOG.trace("=>: {}", message);
 
         String channel = getChannel(message);
         if (channel == null) {
@@ -433,6 +433,8 @@ public abstract class NettyStreamingService<T> {
         if (pingDisposable != null) {
             pingDisposable.dispose();
         }
+
+        LOG.debug("Disconnected");
     }
 
     private void onConnected() {
