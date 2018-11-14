@@ -101,7 +101,9 @@ public abstract class NettyStreamingService<T> {
     public Completable connect() {
         return Completable.create(completable -> {
             try {
+                LOG.info(">>connect 1: {}", isManualDisconnect.get());
                 isManualDisconnect.compareAndSet(false, false);
+                LOG.info(">>connect 2: {}", isManualDisconnect.get());
 
                 LOG.info("Connecting to {}://{}:{}{}", uri.getScheme(), uri.getHost(), uri.getPort(), uri.getPath());
                 String scheme = uri.getScheme() == null ? "ws" : uri.getScheme();
@@ -199,7 +201,9 @@ public abstract class NettyStreamingService<T> {
 
             LOG.debug("Disconnecting...");
 
+            LOG.info(">>disconnect 1: {}", isManualDisconnect.get());
             isManualDisconnect.set(true);
+            LOG.info(">>disconnect 2: {}", isManualDisconnect.get());
 
             Runnable cleanup = () -> {
                 if (eventLoopGroup != null) {
@@ -410,6 +414,7 @@ public abstract class NettyStreamingService<T> {
 
             onDisconnected();
 
+            LOG.info(">>channelInactive: {}", isManualDisconnect.get());
             if (!isManualDisconnect.get()) {
                 super.channelInactive(ctx);
 
@@ -424,8 +429,10 @@ public abstract class NettyStreamingService<T> {
                         .doOnError(t -> LOG.warn("Problem with reconnect: {}", t.getMessage(), t))
                         .retryWhen(new RetryWithDelay(retryDuration.toMillis()))
                         .subscribe(() -> {
-                            LOG.info("Resubscribing channels");
-                            resubscribeChannels();
+                            if (!isManualDisconnect.get()) {
+                                LOG.info("Resubscribing channels");
+                                resubscribeChannels();
+                            }
                         });
             }
         }
