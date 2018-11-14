@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import info.bitrich.xchangestream.service.netty.strategy.HeartbeatStrategy;
 import info.bitrich.xchangestream.service.netty.strategy.DefaultHeartbeatStrategy;
@@ -20,7 +21,6 @@ import io.reactivex.subjects.Subject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import info.bitrich.xchangestream.service.exception.NotConnectedException;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -68,12 +68,12 @@ public abstract class NettyStreamingService<T> {
     protected final Map<String, Subscription> channels = new ConcurrentHashMap<>();
 
     private final BehaviorSubject<Boolean> connectedSubject = BehaviorSubject.createDefault(false);
+    private final AtomicBoolean isManualDisconnect = new AtomicBoolean(false);
 
     private NioEventLoopGroup eventLoopGroup;
     private Disposable resubscribeDisposable;
     private Disposable pingDisposable;
     private boolean compressedMessages = false;
-    private boolean isManualDisconnect = false;
     private Channel webSocketChannel;
 
     public NettyStreamingService(String apiUrl) {
@@ -99,8 +99,6 @@ public abstract class NettyStreamingService<T> {
     }
 
     public Completable connect() {
-        isManualDisconnect = false;
-
         return Completable.create(completable -> {
             try {
                 LOG.info("Connecting to {}://{}:{}{}", uri.getScheme(), uri.getHost(), uri.getPort(), uri.getPath());
@@ -193,12 +191,13 @@ public abstract class NettyStreamingService<T> {
         });
     }
 
-    public synchronized Completable disconnect() {
+    public Completable disconnect() {
 
-        isManualDisconnect = true;
+        isManualDisconnect.set(true);
         return Completable.create(completable -> {
 
             Runnable cleanup = () -> {
+                isManualDisconnect.set(false);
                 channels.clear();
                 completable.onComplete();
                 onDisconnected();
@@ -403,11 +402,11 @@ public abstract class NettyStreamingService<T> {
         }
 
         @Override
-        public synchronized void channelInactive(ChannelHandlerContext ctx) {
+        public void channelInactive(ChannelHandlerContext ctx) {
 
             onDisconnected();
 
-            if (!isManualDisconnect) {
+            if (!isManualDisconnect.get()) {
                 super.channelInactive(ctx);
 
                 if (resubscribeDisposable != null && !resubscribeDisposable.isDisposed()) {
