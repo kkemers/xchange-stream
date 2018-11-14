@@ -206,6 +206,7 @@ public abstract class NettyStreamingService<T> {
             LOG.info(">>disconnect 2: {}", isManualDisconnect.get());
 
             Runnable cleanup = () -> {
+                isManualDisconnect.set(false);
                 if (eventLoopGroup != null) {
                     eventLoopGroup.shutdownGracefully();
                 }
