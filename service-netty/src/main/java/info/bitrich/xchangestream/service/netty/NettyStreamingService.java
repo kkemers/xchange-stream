@@ -442,6 +442,7 @@ public abstract class NettyStreamingService<T> {
             pingDisposable.dispose();
         }
 
+        LOG.debug(">>Disconnected");
         LOG.debug("Disconnected");
     }
 
