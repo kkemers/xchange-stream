@@ -193,17 +193,20 @@ public abstract class NettyStreamingService<T> {
 
     public Completable disconnect() {
 
-        isManualDisconnect.set(true);
         return Completable.create(completable -> {
 
+            LOG.debug("Disconnecting...");
+
+            isManualDisconnect.set(true);
+
             Runnable cleanup = () -> {
-                isManualDisconnect.set(false);
-                channels.clear();
-                completable.onComplete();
-                onDisconnected();
                 if (eventLoopGroup != null) {
                     eventLoopGroup.shutdownGracefully();
                 }
+                channels.clear();
+                completable.onComplete();
+                onDisconnected();
+                isManualDisconnect.set(false);
             };
 
             if (webSocketChannel == null || !webSocketChannel.isOpen()) {
