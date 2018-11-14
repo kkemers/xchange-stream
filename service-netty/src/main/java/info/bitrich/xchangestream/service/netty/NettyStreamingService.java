@@ -330,9 +330,9 @@ public abstract class NettyStreamingService<T> {
         String channel;
         try {
             channel = getChannelNameFromMessage(message);
-        } catch (IOException e) {
-            LOG.error("Cannot parse channel from message: {}", message);
-            return "";
+        } catch (Exception e) {
+            LOG.error("Cannot parse channel from message: {}", message, e);
+            return null;
         }
         return channel;
     }
