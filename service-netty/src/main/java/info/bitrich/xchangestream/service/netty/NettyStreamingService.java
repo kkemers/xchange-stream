@@ -193,7 +193,8 @@ public abstract class NettyStreamingService<T> {
         });
     }
 
-    public Completable disconnect() {
+    public synchronized Completable disconnect() {
+
         isManualDisconnect = true;
         return Completable.create(completable -> {
 
@@ -402,7 +403,7 @@ public abstract class NettyStreamingService<T> {
         }
 
         @Override
-        public void channelInactive(ChannelHandlerContext ctx) {
+        public synchronized void channelInactive(ChannelHandlerContext ctx) {
 
             onDisconnected();
 
