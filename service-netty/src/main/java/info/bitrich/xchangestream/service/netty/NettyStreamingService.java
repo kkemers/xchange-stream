@@ -427,12 +427,10 @@ public abstract class NettyStreamingService<T> {
 
                 resubscribeDisposable = connect()
                         .doOnError(t -> LOG.warn("Problem with reconnect: {}", t.getMessage(), t))
-                        .retryWhen(new RetryWithDelay(retryDuration.toMillis()))
+                        .retryWhen(new RetryWithDelay(retryDuration.toMillis(), isManualDisconnect))
                         .subscribe(() -> {
-                            if (!isManualDisconnect.get()) {
-                                LOG.info("Resubscribing channels");
-                                resubscribeChannels();
-                            }
+                            LOG.info("Resubscribing channels");
+                            resubscribeChannels();
                         });
             }
         }
