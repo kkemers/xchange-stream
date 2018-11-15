@@ -28,6 +28,7 @@ public class BitfinexStreamingService extends JsonNettyStreamingService {
     private static final String AUTH = "auth";
     private static final String ERROR = "error";
     private static final String CHANNEL_ID = "chanId";
+    private static final String CHANNEL = "channel";
     private static final String SUBSCRIBED = "subscribed";
     private static final String UNSUBSCRIBED = "unsubscribed";
 
@@ -146,7 +147,7 @@ public class BitfinexStreamingService extends JsonNettyStreamingService {
                 break;
             }
             case SUBSCRIBED: {
-                String channel = message.get("channel").asText();
+                String channel = message.get(CHANNEL).asText();
                 String pair = message.get("pair").asText();
                 String channelId = message.get(CHANNEL_ID).asText();
                 try {
