@@ -68,7 +68,7 @@ public abstract class NettyStreamingService<T> {
     protected final Map<String, Subscription> channels = new ConcurrentHashMap<>();
 
     private final BehaviorSubject<Boolean> connectedSubject = BehaviorSubject.createDefault(false);
-    private final AtomicBoolean isManualDisconnect = new AtomicBoolean(false);
+    private final AtomicBoolean isAllowReconnect = new AtomicBoolean(false);
 
     private NioEventLoopGroup eventLoopGroup;
     private Disposable resubscribeDisposable;
@@ -99,10 +99,7 @@ public abstract class NettyStreamingService<T> {
     }
 
     public Completable connect() {
-        isManualDisconnect.set(false);
-        LOG.info(">>>connect {}", isManualDisconnect.get());
-
-        return connectImpl();
+        return connectImpl().doOnComplete(() -> isAllowReconnect.set(true));
     }
 
     public Completable reconnect() {
@@ -208,8 +205,8 @@ public abstract class NettyStreamingService<T> {
 
             LOG.debug("Disconnecting...");
 
-            isManualDisconnect.set(true);
-            LOG.info(">>>disconnect {}", isManualDisconnect.get());
+            isAllowReconnect.set(false);
+            LOG.info(">>>disconnect {}", isAllowReconnect.get());
             if (resubscribeDisposable != null) {
                 resubscribeDisposable.dispose();
             }
@@ -423,8 +420,8 @@ public abstract class NettyStreamingService<T> {
 
             onDisconnected();
 
-            LOG.info(">>>channelInactive {}", isManualDisconnect.get());
-            if (!isManualDisconnect.get()) {
+            LOG.info(">>>channelInactive {}", isAllowReconnect.get());
+            if (!isAllowReconnect.get()) {
                 super.channelInactive(ctx);
 
                 if (resubscribeDisposable != null && !resubscribeDisposable.isDisposed()) {
