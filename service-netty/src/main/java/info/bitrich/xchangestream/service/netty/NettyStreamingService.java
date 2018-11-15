@@ -99,10 +99,19 @@ public abstract class NettyStreamingService<T> {
     }
 
     public Completable connect() {
+        isManualDisconnect.set(false);
+        LOG.info(">>>connect {}", isManualDisconnect.get());
+
+        return connectImpl();
+    }
+
+    public Completable reconnect() {
+        return connectImpl();
+    }
+
+    private Completable connectImpl() {
         return Completable.create(completable -> {
             try {
-                isManualDisconnect.compareAndSet(false, false);
-
                 LOG.info("Connecting to {}://{}:{}{}", uri.getScheme(), uri.getHost(), uri.getPort(), uri.getPath());
                 String scheme = uri.getScheme() == null ? "ws" : uri.getScheme();
 
@@ -200,12 +209,12 @@ public abstract class NettyStreamingService<T> {
             LOG.debug("Disconnecting...");
 
             isManualDisconnect.set(true);
+            LOG.info(">>>disconnect {}", isManualDisconnect.get());
             if (resubscribeDisposable != null) {
                 resubscribeDisposable.dispose();
             }
 
             Runnable cleanup = () -> {
-                isManualDisconnect.set(false);
                 if (eventLoopGroup != null) {
                     eventLoopGroup.shutdownGracefully();
                 }
@@ -414,6 +423,7 @@ public abstract class NettyStreamingService<T> {
 
             onDisconnected();
 
+            LOG.info(">>>channelInactive {}", isManualDisconnect.get());
             if (!isManualDisconnect.get()) {
                 super.channelInactive(ctx);
 
@@ -424,7 +434,7 @@ public abstract class NettyStreamingService<T> {
 
                 LOG.info("Reopening websocket because it was closed by the host");
 
-                resubscribeDisposable = connect()
+                resubscribeDisposable = reconnect()
                         .doOnError(t -> LOG.warn("Problem with reconnect: {}", t.getMessage(), t))
                         .retryWhen(new RetryWithDelay(retryDuration.toMillis()))
                         .subscribe(() -> {
@@ -442,7 +452,6 @@ public abstract class NettyStreamingService<T> {
             pingDisposable.dispose();
         }
 
-        LOG.debug(">>Disconnected");
         LOG.debug("Disconnected");
     }
 
