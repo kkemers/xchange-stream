@@ -106,99 +106,6 @@ public abstract class NettyStreamingService<T> {
         return connectImpl();
     }
 
-    private Completable connectImpl() {
-        return Completable.create(completable -> {
-            try {
-                LOG.info("Connecting to {}://{}:{}{}", uri.getScheme(), uri.getHost(), uri.getPort(), uri.getPath());
-                String scheme = uri.getScheme() == null ? "ws" : uri.getScheme();
-
-                String host = uri.getHost();
-                if (host == null) {
-                    throw new IllegalArgumentException("Host cannot be null.");
-                }
-
-                final int port;
-                if (uri.getPort() == -1) {
-                    if ("ws".equalsIgnoreCase(scheme)) {
-                        port = 80;
-                    } else if ("wss".equalsIgnoreCase(scheme)) {
-                        port = 443;
-                    } else {
-                        port = -1;
-                    }
-                } else {
-                    port = uri.getPort();
-                }
-
-                if (!"ws".equalsIgnoreCase(scheme) && !"wss".equalsIgnoreCase(scheme)) {
-                    throw new IllegalArgumentException("Only WS(S) is supported.");
-                }
-
-                final boolean ssl = "wss".equalsIgnoreCase(scheme);
-                final SslContext sslCtx;
-                if (ssl) {
-                    sslCtx = SslContextBuilder.forClient().build();
-                } else {
-                    sslCtx = null;
-                }
-
-                final WebSocketClientHandler handler = getWebSocketClientHandler(WebSocketClientHandshakerFactory.newHandshaker(
-                        uri, WebSocketVersion.V13, null, true, new DefaultHttpHeaders(), maxFramePayloadLength),
-                        this::messageHandler);
-
-                this.eventLoopGroup = new NioEventLoopGroup();
-
-                Bootstrap b = new Bootstrap();
-                b.group(eventLoopGroup)
-                        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, java.lang.Math.toIntExact(connectionTimeout.toMillis()))
-                        .channel(NioSocketChannel.class)
-                        .handler(new ChannelInitializer<SocketChannel>() {
-                            @Override
-                            protected void initChannel(SocketChannel ch) {
-                                ChannelPipeline p = ch.pipeline();
-                                if (sslCtx != null) {
-                                    p.addLast(sslCtx.newHandler(ch.alloc(), host, port));
-                                }
-
-                                WebSocketClientExtensionHandler clientExtensionHandler = getWebSocketClientExtensionHandler();
-                                List<ChannelHandler> handlers = new ArrayList<>(4);
-                                handlers.add(new HttpClientCodec());
-                                if (compressedMessages) handlers.add(WebSocketClientCompressionHandler.INSTANCE);
-                                handlers.add(new HttpObjectAggregator(65536));
-
-                                if (clientExtensionHandler != null) {
-                                    handlers.add(clientExtensionHandler);
-                                }
-
-                                handlers.add(handler);
-                                p.addLast(handlers.toArray(new ChannelHandler[handlers.size()]));
-                            }
-                        });
-
-                b.connect(uri.getHost(), port).addListener((ChannelFuture future) -> {
-                    webSocketChannel = future.channel();
-                    if (future.isSuccess()) {
-                        handler.handshakeFuture().addListener(f -> {
-                            if (f.isSuccess()) {
-                                completable.onComplete();
-                                onConnected();
-                            } else {
-                                completable.onError(f.cause());
-                                onDisconnected();
-                            }
-                        });
-                    } else {
-                        completable.onError(future.cause());
-                        onDisconnected();
-                    }
-
-                });
-            } catch (Exception throwable) {
-                completable.onError(throwable);
-            }
-        });
-    }
-
     public Completable disconnect() {
 
         return Completable.create(completable -> {
@@ -206,7 +113,6 @@ public abstract class NettyStreamingService<T> {
             LOG.debug("Disconnecting...");
 
             isAllowReconnect.set(false);
-            LOG.info(">>>disconnect {}", isAllowReconnect.get());
             if (resubscribeDisposable != null) {
                 resubscribeDisposable.dispose();
             }
@@ -233,8 +139,6 @@ public abstract class NettyStreamingService<T> {
     public Observable<Boolean> connected() {
         return connectedSubject.distinctUntilChanged();
     }
-
-    protected abstract String getChannelNameFromMessage(T message) throws IOException;
 
     public abstract String getSubscribeMessage(String channelName, Object... args) throws IOException;
 
@@ -340,6 +244,8 @@ public abstract class NettyStreamingService<T> {
         this.compressedMessages = compressedMessages;
     }
 
+    protected abstract String getChannelNameFromMessage(T message) throws IOException;
+
     protected String getChannel(T message) {
         String channel;
         try {
@@ -420,7 +326,6 @@ public abstract class NettyStreamingService<T> {
 
             onDisconnected();
 
-            LOG.info(">>>channelInactive {}", isAllowReconnect.get());
             if (isAllowReconnect.get()) {
                 super.channelInactive(ctx);
 
@@ -440,6 +345,99 @@ public abstract class NettyStreamingService<T> {
                         });
             }
         }
+    }
+
+    private Completable connectImpl() {
+        return Completable.create(completable -> {
+            try {
+                LOG.info("Connecting to {}://{}:{}{}", uri.getScheme(), uri.getHost(), uri.getPort(), uri.getPath());
+                String scheme = uri.getScheme() == null ? "ws" : uri.getScheme();
+
+                String host = uri.getHost();
+                if (host == null) {
+                    throw new IllegalArgumentException("Host cannot be null.");
+                }
+
+                final int port;
+                if (uri.getPort() == -1) {
+                    if ("ws".equalsIgnoreCase(scheme)) {
+                        port = 80;
+                    } else if ("wss".equalsIgnoreCase(scheme)) {
+                        port = 443;
+                    } else {
+                        port = -1;
+                    }
+                } else {
+                    port = uri.getPort();
+                }
+
+                if (!"ws".equalsIgnoreCase(scheme) && !"wss".equalsIgnoreCase(scheme)) {
+                    throw new IllegalArgumentException("Only WS(S) is supported.");
+                }
+
+                final boolean ssl = "wss".equalsIgnoreCase(scheme);
+                final SslContext sslCtx;
+                if (ssl) {
+                    sslCtx = SslContextBuilder.forClient().build();
+                } else {
+                    sslCtx = null;
+                }
+
+                final WebSocketClientHandler handler = getWebSocketClientHandler(WebSocketClientHandshakerFactory.newHandshaker(
+                        uri, WebSocketVersion.V13, null, true, new DefaultHttpHeaders(), maxFramePayloadLength),
+                        this::messageHandler);
+
+                this.eventLoopGroup = new NioEventLoopGroup();
+
+                Bootstrap b = new Bootstrap();
+                b.group(eventLoopGroup)
+                        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, java.lang.Math.toIntExact(connectionTimeout.toMillis()))
+                        .channel(NioSocketChannel.class)
+                        .handler(new ChannelInitializer<SocketChannel>() {
+                            @Override
+                            protected void initChannel(SocketChannel ch) {
+                                ChannelPipeline p = ch.pipeline();
+                                if (sslCtx != null) {
+                                    p.addLast(sslCtx.newHandler(ch.alloc(), host, port));
+                                }
+
+                                WebSocketClientExtensionHandler clientExtensionHandler = getWebSocketClientExtensionHandler();
+                                List<ChannelHandler> handlers = new ArrayList<>(4);
+                                handlers.add(new HttpClientCodec());
+                                if (compressedMessages) handlers.add(WebSocketClientCompressionHandler.INSTANCE);
+                                handlers.add(new HttpObjectAggregator(65536));
+
+                                if (clientExtensionHandler != null) {
+                                    handlers.add(clientExtensionHandler);
+                                }
+
+                                handlers.add(handler);
+                                p.addLast(handlers.toArray(new ChannelHandler[handlers.size()]));
+                            }
+                        });
+
+                b.connect(uri.getHost(), port).addListener((ChannelFuture future) -> {
+                    webSocketChannel = future.channel();
+                    if (future.isSuccess()) {
+                        handler.handshakeFuture().addListener(f -> {
+                            if (f.isSuccess()) {
+                                completable.onComplete();
+                                onConnected();
+                            } else {
+                                completable.onError(f.cause());
+                                onDisconnected();
+                            }
+                        });
+                    } else {
+                        completable.onError(future.cause());
+                        onDisconnected();
+                    }
+
+                });
+            } catch (Exception throwable) {
+                completable.onError(throwable);
+            }
+        });
     }
 
     private void onDisconnected() {
