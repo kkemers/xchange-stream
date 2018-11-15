@@ -421,7 +421,7 @@ public abstract class NettyStreamingService<T> {
             onDisconnected();
 
             LOG.info(">>>channelInactive {}", isAllowReconnect.get());
-            if (!isAllowReconnect.get()) {
+            if (isAllowReconnect.get()) {
                 super.channelInactive(ctx);
 
                 if (resubscribeDisposable != null && !resubscribeDisposable.isDisposed()) {
