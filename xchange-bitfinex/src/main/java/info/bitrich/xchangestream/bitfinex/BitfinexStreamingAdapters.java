@@ -31,30 +31,38 @@ public class BitfinexStreamingAdapters {
     }
 
     private static Order adaptMarketOrder(BitfinexWebSocketOrder order) {
-        MarketOrder.Builder builder = (MarketOrder.Builder) new MarketOrder.Builder(
-                adaptType(order.getAmountOrig()), adaptSymbol(order.getSymbol()))
-                .id(String.valueOf(order.getId()))
-                .averagePrice(order.getPriceAvg())
-                .orderStatus(adaptStatus(order.getOrderStatus()))
-                .originalAmount(adaptAmount(order.getAmountOrig()))
-                .remainingAmount(adaptAmount(order.getAmount()))
-                .timestamp(DateUtils.fromMillisUtc(order.getMtsCreate()));
-        return builder.build();
+        try {
+            MarketOrder.Builder builder = (MarketOrder.Builder) new MarketOrder.Builder(
+                    adaptType(order.getAmountOrig()), adaptSymbol(order.getSymbol()))
+                    .id(String.valueOf(order.getId()))
+                    .averagePrice(order.getPriceAvg())
+                    .orderStatus(adaptStatus(order.getOrderStatus()))
+                    .originalAmount(adaptAmount(order.getAmountOrig()))
+                    .remainingAmount(adaptAmount(order.getAmount()))
+                    .timestamp(DateUtils.fromMillisUtc(order.getMtsCreate()));
+            return builder.build();
+        } catch (Exception e) {
+            throw new IllegalArgumentException(String.format("Unexpected data in an order: %s", order));
+        }
     }
 
     private static Order adaptLimitOrder(BitfinexWebSocketOrder order) {
-        return new LimitOrder.Builder(adaptType(order.getAmountOrig()), adaptSymbol(order.getSymbol()))
-                .id(String.valueOf(order.getId()))
-                .limitPrice(order.getPrice())
-                .averagePrice(order.getPriceAvg())
-                .orderStatus(adaptStatus(order.getOrderStatus()))
-                .originalAmount(adaptAmount(order.getAmountOrig()))
-                .remainingAmount(adaptAmount(order.getAmount()))
-                .timestamp(DateUtils.fromMillisUtc(order.getMtsCreate()))
-                .build();
+        try {
+            return new LimitOrder.Builder(adaptType(order.getAmountOrig()), adaptSymbol(order.getSymbol()))
+                    .id(String.valueOf(order.getId()))
+                    .limitPrice(order.getPrice())
+                    .averagePrice(order.getPriceAvg())
+                    .orderStatus(adaptStatus(order.getOrderStatus()))
+                    .originalAmount(adaptAmount(order.getAmountOrig()))
+                    .remainingAmount(adaptAmount(order.getAmount()))
+                    .timestamp(DateUtils.fromMillisUtc(order.getMtsCreate()))
+                    .build();
+        } catch (Exception e) {
+            throw new IllegalArgumentException(String.format("Unexpected data in an order: %s", order));
+        }
     }
 
-    private static Order.OrderStatus adaptStatus(String status) {
+    private static Order.OrderStatus adaptStatus(String status) throws Exception {
 
         if (status == null) {
             log.warn("Missing status: {}", status);
@@ -74,8 +82,7 @@ public class BitfinexStreamingAdapters {
             return Order.OrderStatus.PARTIALLY_FILLED;
         }
 
-        log.warn("Unknown status: {}", status);
-        return Order.OrderStatus.UNKNOWN;
+        throw new Exception(String.format("Unknown status: %s", status));
     }
 
     private static CurrencyPair adaptSymbol(String symbol) {
