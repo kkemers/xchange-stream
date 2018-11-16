@@ -1,8 +1,6 @@
 package info.bitrich.xchangestream.bitfinex.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import java.math.BigDecimal;
 
@@ -168,5 +166,31 @@ public class BitfinexWebSocketOrder {
 
     public Object getUnused14() {
         return unused14;
+    }
+
+    @Override
+    public String toString() {
+        final StringBuffer buffer = new StringBuffer("{");
+        buffer.append("id=").append(id);
+        buffer.append(", gid=").append(gid);
+        buffer.append(", cid=").append(cid);
+        buffer.append(", symbol='").append(symbol).append('\'');
+        buffer.append(", mtsCreate=").append(mtsCreate);
+        buffer.append(", mtsUpdate=").append(mtsUpdate);
+        buffer.append(", amount=").append(amount);
+        buffer.append(", amountOrig=").append(amountOrig);
+        buffer.append(", type='").append(type).append('\'');
+        buffer.append(", typePrev='").append(typePrev).append('\'');
+        buffer.append(", flags=").append(flags);
+        buffer.append(", orderStatus='").append(orderStatus).append('\'');
+        buffer.append(", price=").append(price);
+        buffer.append(", priceAvg=").append(priceAvg);
+        buffer.append(", priceTrailing=").append(priceTrailing);
+        buffer.append(", priceAuxLimit=").append(priceAuxLimit);
+        buffer.append(", notify='").append(notify).append('\'');
+        buffer.append(", placedId='").append(placedId).append('\'');
+        buffer.append(", comment='").append(comment).append('\'');
+        buffer.append('}');
+        return buffer.toString();
     }
 }
