@@ -42,7 +42,7 @@ public class BitfinexStreamingAdapters {
                     .timestamp(DateUtils.fromMillisUtc(order.getMtsCreate()));
             return builder.build();
         } catch (Exception e) {
-            throw new IllegalArgumentException(String.format("Unexpected data in an order: %s", order));
+            throw new IllegalArgumentException(String.format("Unexpected data in an order: %s", order), e);
         }
     }
 
@@ -58,7 +58,7 @@ public class BitfinexStreamingAdapters {
                     .timestamp(DateUtils.fromMillisUtc(order.getMtsCreate()))
                     .build();
         } catch (Exception e) {
-            throw new IllegalArgumentException(String.format("Unexpected data in an order: %s", order));
+            throw new IllegalArgumentException(String.format("Unexpected data in an order: %s", order), e);
         }
     }
 
