@@ -25,7 +25,6 @@ public class BitfinexStreamingPrivateDataService implements StreamingPrivateData
 
         Observable<BitfinexWebSocketOrder> orderSnapshot = streamingService.subscribeChannel("os")
                 .map(json -> mapper.convertValue(json.get(2), BitfinexWebSocketOrder[].class))
-                .doOnNext(order -> log.debug("Order update: {}", (Object[]) order))
                 .flatMap(Observable::fromArray);
         Observable<BitfinexWebSocketOrder> on = streamingService.subscribeChannel("on")
                 .map(json -> mapper.convertValue(json.get(2), BitfinexWebSocketOrder.class));
@@ -35,6 +34,7 @@ public class BitfinexStreamingPrivateDataService implements StreamingPrivateData
                 .map(json -> mapper.convertValue(json.get(2), BitfinexWebSocketOrder.class));
 
         return Observable.merge(orderSnapshot, on, ou, oc)
+                .doOnNext(order -> log.debug("Order update: {}", order))
                 .map(BitfinexStreamingAdapters::adaptOrder);
     }
 }
