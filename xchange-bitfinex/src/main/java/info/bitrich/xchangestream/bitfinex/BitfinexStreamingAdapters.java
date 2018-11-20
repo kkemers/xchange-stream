@@ -36,7 +36,7 @@ public class BitfinexStreamingAdapters {
                     adaptType(order.getAmountOrig()), adaptSymbol(order.getSymbol()))
                     .id(String.valueOf(order.getId()))
                     .averagePrice(order.getPriceAvg())
-                    .orderStatus(adaptStatus(order.getOrderStatus()))
+                    .orderStatus(adaptStatus(order))
                     .originalAmount(adaptAmount(order.getAmountOrig()))
                     .remainingAmount(adaptAmount(order.getAmount()))
                     .timestamp(DateUtils.fromMillisUtc(order.getMtsCreate()));
@@ -52,7 +52,7 @@ public class BitfinexStreamingAdapters {
                     .id(String.valueOf(order.getId()))
                     .limitPrice(order.getPrice())
                     .averagePrice(order.getPriceAvg())
-                    .orderStatus(adaptStatus(order.getOrderStatus()))
+                    .orderStatus(adaptStatus(order))
                     .originalAmount(adaptAmount(order.getAmountOrig()))
                     .remainingAmount(adaptAmount(order.getAmount()))
                     .timestamp(DateUtils.fromMillisUtc(order.getMtsCreate()))
@@ -62,7 +62,9 @@ public class BitfinexStreamingAdapters {
         }
     }
 
-    private static Order.OrderStatus adaptStatus(String status) throws Exception {
+    private static Order.OrderStatus adaptStatus(BitfinexWebSocketOrder order) {
+
+        String status = order.getOrderStatus();
 
         if (status == null) {
             log.warn("Missing status: {}", status);
@@ -82,7 +84,8 @@ public class BitfinexStreamingAdapters {
             return Order.OrderStatus.PARTIALLY_FILLED;
         }
 
-        throw new Exception(String.format("Unknown status: %s", status));
+        log.error("Unknown status in order: %s", order);
+        return Order.OrderStatus.UNKNOWN;
     }
 
     private static CurrencyPair adaptSymbol(String symbol) {
