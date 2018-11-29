@@ -84,7 +84,7 @@ public class BitfinexStreamingAdapters {
             return Order.OrderStatus.PARTIALLY_FILLED;
         }
 
-        log.error("Unknown status in order: %s", order);
+        log.error("Unknown status in order: {}", order);
         return Order.OrderStatus.UNKNOWN;
     }
 
