@@ -24,4 +24,14 @@ public class BitfinexRawOrderbookLevel {
     public BigDecimal getAmount() {
         return amount;
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer buffer = new StringBuffer("{");
+        buffer.append("orderId='").append(orderId).append('\'');
+        buffer.append(", price=").append(price);
+        buffer.append(", amount=").append(amount);
+        buffer.append('}');
+        return buffer.toString();
+    }
 }
