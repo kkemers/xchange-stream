@@ -2,7 +2,7 @@ package info.bitrich.xchangestream.bitfinex.publicApi;
 
 import info.bitrich.xchangestream.bitfinex.BitfinexStreamingExchange;
 import info.bitrich.xchangestream.bitfinex.BitfinexStreamingMarketDataService;
-import info.bitrich.xchangestream.bitfinex.dto.BitfinexOrderbookUpdate;
+import info.bitrich.xchangestream.bitfinex.dto.BitfinexRawOrderbookUpdate;
 import info.bitrich.xchangestream.core.StreamingExchange;
 import info.bitrich.xchangestream.core.StreamingExchangeFactory;
 import io.reactivex.observers.TestObserver;
@@ -37,7 +37,17 @@ public class BitfinexPublicApiIntegration {
     @Test
     public void getOrderBookUpdates() {
         TestObserver<OrderBookUpdate> observer =
-                streamingMarketDataService.getOrderBookUpdates(CurrencyPair.BTC_USD, 100).take(5).test();
+                streamingMarketDataService.getOrderBookUpdates(CurrencyPair.BTC_USD, 25).take(5).test();
+
+        observer.awaitTerminalEvent(5, TimeUnit.SECONDS);
+        observer.assertNoErrors();
+        observer.assertValueCount(5);
+    }
+
+    @Test
+    public void getRawOrderBookUpdates() {
+        TestObserver<BitfinexRawOrderbookUpdate> observer =
+                streamingMarketDataService.getBitfinexRawOrderBookUpdates("BTCUSD", null).take(5).test();
 
         observer.awaitTerminalEvent(5, TimeUnit.SECONDS);
         observer.assertNoErrors();

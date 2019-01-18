@@ -16,12 +16,15 @@ import static org.knowm.xchange.bitfinex.v1.BitfinexAdapters.*;
 /**
  * Created by Lukas Zaoralek on 7.11.17.
  */
-public class BitfinexStreamingMarketDataService implements StreamingMarketDataService {
+public class BitfinexStreamingMarketDataService extends BitfinexStreamingMarketDataServiceRaw
+        implements StreamingMarketDataService {
+
     private final BitfinexStreamingService service;
 
     private Map<CurrencyPair, BitfinexOrderbook> orderbooks = new ConcurrentHashMap<>();
 
     public BitfinexStreamingMarketDataService(BitfinexStreamingService service) {
+        super(service);
         this.service = service;
     }
 
@@ -39,8 +42,8 @@ public class BitfinexStreamingMarketDataService implements StreamingMarketDataSe
     @Override
     public Observable<OrderBookUpdate> getOrderBookUpdates(CurrencyPair currencyPair, Object... args) {
         return getOrderBookUpdatesRaw(currencyPair, args)
-                .flatMap(bitfinexOrderBookUpdate -> Observable.fromIterable(
-                        BitfinexStreamingAdapters.adaptOrderBookUpdates(bitfinexOrderBookUpdate, currencyPair)));
+                .flatMap(update -> Observable.fromIterable(
+                        BitfinexStreamingAdapters.adaptOrderBookUpdates(update, currencyPair)));
     }
 
     @Override
@@ -85,14 +88,13 @@ public class BitfinexStreamingMarketDataService implements StreamingMarketDataSe
     }
 
     private Observable<BitfinexOrderbookUpdate> getOrderBookUpdatesRaw(CurrencyPair currencyPair, Object... args) {
-        String channelName = "book";
-        final String depth = args.length > 0 ? args[0].toString() : "100";
-        String pair = currencyPair.base.toString() + currencyPair.counter.toString();
-        final ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-        return service.subscribeChannel(channelName, new Object[]{pair, "P0", depth})
-                .map(jsonNode -> mapper.readValue(jsonNode.toString(), BitfinexOrderbookUpdate.class));
+        String pair = currencyPair.base.toString() + currencyPair.counter.toString();
+        Integer length = args.length > 0 ? (Integer) args[0] : 100;
+        String frequency = args.length > 1 ? args[1].toString() : "F0";
+        String precision = args.length > 2 ? args[2].toString() : "P0";
+
+        return getBitfinexOrderBookUpdates(pair, precision, frequency, length);
     }
 
     private BitfinexOrderbook updateOrCreateOrderBook(Map<CurrencyPair, BitfinexOrderbook> orderbooks,

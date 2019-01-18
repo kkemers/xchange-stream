@@ -12,6 +12,7 @@ public class BitfinexWebSocketSubscriptionMessage {
     private static final String PAIR = "pair";
     private static final String PREC = "prec";
     private static final String LEN = "len";
+    private static final String FREQ = "freq";
 
     @JsonProperty(EVENT)
     private String event;
@@ -25,20 +26,18 @@ public class BitfinexWebSocketSubscriptionMessage {
     @JsonProperty(PREC)
     private String prec;
 
+    @JsonProperty(FREQ)
+    private String freq;
+
     @JsonProperty(LEN)
-    private String len;
+    private Integer len;
 
-    public BitfinexWebSocketSubscriptionMessage(String channel, String pair) {
-        this.event = "subscribe";
-        this.channel = channel;
-        this.pair = pair;
-    }
-
-    public BitfinexWebSocketSubscriptionMessage(String channel, String pair, String prec, String len) {
+    public BitfinexWebSocketSubscriptionMessage(String channel, String pair, String prec, String freq, Integer len) {
         this.event = "subscribe";
         this.channel = channel;
         this.pair = pair;
         this.prec = prec;
+        this.freq = freq;
         this.len = len;
     }
 
@@ -58,7 +57,11 @@ public class BitfinexWebSocketSubscriptionMessage {
         return prec;
     }
 
-    public String getLen() {
+    public String getFreq() {
+        return freq;
+    }
+
+    public Integer getLen() {
         return len;
     }
 }

@@ -44,7 +44,7 @@ public class BitfinexPrivateApiIntegration {
     }
 
     @Test
-    public void TODO() throws IOException {
+    public void PlaceLimitOrders() throws IOException {
         LimitOrder limitOrder1 =
                 new LimitOrder.Builder(Order.OrderType.BID, CurrencyPair.BTC_USD)
                         .originalAmount(new BigDecimal("0.02"))
