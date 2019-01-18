@@ -32,13 +32,26 @@ public class BitfinexWebSocketSubscriptionMessage {
     @JsonProperty(LEN)
     private Integer len;
 
-    public BitfinexWebSocketSubscriptionMessage(String channel, String pair, String prec, String freq, Integer len) {
+    public BitfinexWebSocketSubscriptionMessage(String channel, Object... args) {
+
         this.event = "subscribe";
         this.channel = channel;
-        this.pair = pair;
-        this.prec = prec;
-        this.freq = freq;
-        this.len = len;
+
+        if (args.length > 0) {
+            this.pair = (String) args[0];
+        }
+        if (args.length > 1) {
+            this.prec = (String) args[1];
+        }
+        if (args.length > 2) {
+            this.freq = (String) args[2];
+        }
+        if (args.length > 3) {
+            this.len = (Integer) args[3];
+        }
+        if (args.length > 4) {
+            throw new IllegalArgumentException(String.format("Unexpected arguments count: %d", args.length));
+        }
     }
 
     public String getEvent() {

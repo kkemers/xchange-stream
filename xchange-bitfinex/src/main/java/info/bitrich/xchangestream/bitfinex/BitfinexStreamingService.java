@@ -64,12 +64,8 @@ public class BitfinexStreamingService extends JsonNettyStreamingService {
 
     @Override
     public String getSubscribeMessage(String channelName, Object... args) throws IOException {
-        if (args.length != 4) {
-            throw new IllegalArgumentException(String.format("Unexpected arguments count: %d", args.length));
-        }
         BitfinexWebSocketSubscriptionMessage subscribeMessage =
-                new BitfinexWebSocketSubscriptionMessage(channelName,
-                        (String) args[0], (String) args[1], (String) args[2], (Integer) args[3]);
+                new BitfinexWebSocketSubscriptionMessage(channelName, args);
         return objectMapper.writeValueAsString(subscribeMessage);
     }
 
