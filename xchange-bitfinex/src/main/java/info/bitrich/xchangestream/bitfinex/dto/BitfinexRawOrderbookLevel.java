@@ -3,17 +3,17 @@ package info.bitrich.xchangestream.bitfinex.dto;
 import java.math.BigDecimal;
 
 public class BitfinexRawOrderbookLevel {
-    private final String orderId;
+    private final Long orderId;
     private final BigDecimal price;
     private final BigDecimal amount;
 
-    public BitfinexRawOrderbookLevel(String orderId, BigDecimal price, BigDecimal amount) {
+    public BitfinexRawOrderbookLevel(Long orderId, BigDecimal price, BigDecimal amount) {
         this.orderId = orderId;
         this.price = price;
         this.amount = amount;
     }
 
-    public String getOrderId() {
+    public Long getOrderId() {
         return orderId;
     }
 

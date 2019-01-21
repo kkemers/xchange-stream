@@ -90,10 +90,12 @@ public class BitfinexStreamingService extends JsonNettyStreamingService {
 
     @Override
     public String getSubscriptionUniqueId(String channelName, Object... args) {
-        if (args.length > 0) {
-            return channelName + "-" + args[0].toString();
-        } else {
+        if (args.length >= 2) {
+            return channelName + "-" + args[0].toString() + "-" + args[1].toString();
+        } else if (args.length == 0) {
             return channelName;
+        } else {
+            throw new IllegalArgumentException(String.format("Unexpected arguments count in: %s", args));
         }
     }
 
@@ -138,9 +140,10 @@ public class BitfinexStreamingService extends JsonNettyStreamingService {
             case SUBSCRIBED: {
                 String channel = message.get(CHANNEL).asText();
                 String pair = message.get("pair").asText();
+                String precision = message.get("prec").asText();
                 String channelId = message.get(CHANNEL_ID).asText();
                 try {
-                    String subscriptionUniqueId = getSubscriptionUniqueId(channel, pair);
+                    String subscriptionUniqueId = getSubscriptionUniqueId(channel, pair, precision);
                     subscribedChannels.put(channelId, subscriptionUniqueId);
                     LOG.debug("Register channel {}: {}", subscriptionUniqueId, channelId);
                 } catch (Exception e) {

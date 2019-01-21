@@ -80,7 +80,7 @@ public class BitfinexRawOrderbookUpdate {
             final int PRICE = 1;
             final int AMOUNT = 2;
 
-            String orderId = levelsNode.get(ORDER_ID).asText();
+            Long orderId = levelsNode.get(ORDER_ID).asLong();
             BigDecimal price = levelsNode.get(PRICE).decimalValue();
             BigDecimal amount = levelsNode.get(AMOUNT).decimalValue();
 
