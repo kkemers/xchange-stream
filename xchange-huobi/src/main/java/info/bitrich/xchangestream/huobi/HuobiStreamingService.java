@@ -7,7 +7,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import info.bitrich.xchangestream.huobi.dto.HuobiPongMessage;
 import info.bitrich.xchangestream.huobi.dto.HuobiSubscribeRequest;
 import info.bitrich.xchangestream.huobi.dto.HuobiUnsubscribeRequest;
+import info.bitrich.xchangestream.huobi.netty.HuobiHeartbeatStrategy;
 import info.bitrich.xchangestream.service.netty.JsonNettyStreamingService;
+import info.bitrich.xchangestream.service.netty.NettyStreamingService;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import org.knowm.xchange.exceptions.ExchangeException;
@@ -29,12 +31,14 @@ public class HuobiStreamingService extends JsonNettyStreamingService {
     private final Map<String, String> subscriptionRequests = new ConcurrentHashMap<>();
 
     public HuobiStreamingService(String apiUrl) {
-        super(apiUrl, Integer.MAX_VALUE);
+        super(apiUrl, Integer.MAX_VALUE,
+                NettyStreamingService.DEFAULT_CONNECTION_TIMEOUT, NettyStreamingService.DEFAULT_RETRY_DURATION,
+                new HuobiHeartbeatStrategy());
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
     @Override
-    protected String getChannelNameFromMessage(JsonNode message) throws IOException {
+    protected String getChannelNameFromMessage(JsonNode message) {
         return message.get("ch").asText();
     }
 
@@ -86,6 +90,10 @@ public class HuobiStreamingService extends JsonNettyStreamingService {
             return;
         }
 
+        if (handlePongIfExists(message)) {
+            return;
+        }
+
         JsonNode subbedNode = message.get("subbed");
         if (subbedNode != null) {
             String channel = subbedNode.asText();
@@ -98,7 +106,6 @@ public class HuobiStreamingService extends JsonNettyStreamingService {
         JsonNode unsubbedNode = message.get("unsubbed");
         if (unsubbedNode != null) {
             String channel = unsubbedNode.asText();
-            String id = message.get("id").asText();
             LOG.info("Unsubscribe from '{}' is successful", channel);
             return;
         }
@@ -142,4 +149,17 @@ public class HuobiStreamingService extends JsonNettyStreamingService {
 
         return false;
     }
+
+    private boolean handlePongIfExists(JsonNode message) {
+
+        JsonNode pong = message.get("pong");
+        if (pong != null) {
+            long pongTime = pong.asLong();
+            LOG.debug("Ping responded at {}ms", System.currentTimeMillis() - pongTime);
+            return true;
+        }
+
+        return false;
+    }
+
 }
