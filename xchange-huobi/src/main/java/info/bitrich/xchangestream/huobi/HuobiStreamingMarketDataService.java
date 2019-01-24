@@ -40,6 +40,7 @@ public class HuobiStreamingMarketDataService extends HuobiStreamingMarketDataSer
 
     @Override
     public Observable<Trade> getTrades(CurrencyPair currencyPair, Object... args) {
-        throw new NotYetImplementedForExchangeException();
+        return getHuobiTrade(currencyPair)
+                .map(trade -> HuobiAdapters.adaptTrade(currencyPair, trade));
     }
 }

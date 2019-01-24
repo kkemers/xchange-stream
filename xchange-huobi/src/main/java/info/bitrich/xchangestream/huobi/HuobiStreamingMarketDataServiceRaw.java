@@ -2,10 +2,12 @@ package info.bitrich.xchangestream.huobi;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import info.bitrich.xchangestream.huobi.dto.HuobiMarketDepthMessage;
+import info.bitrich.xchangestream.huobi.dto.HuobiTradeDetailsMessage;
 import info.bitrich.xchangestream.huobi.utils.HuobiAdapters;
 import io.reactivex.Observable;
 import org.knowm.xchange.currency.CurrencyPair;
 
+@SuppressWarnings("WeakerAccess")
 public class HuobiStreamingMarketDataServiceRaw {
 
     private final ObjectMapper mapper = new ObjectMapper();
@@ -36,4 +38,11 @@ public class HuobiStreamingMarketDataServiceRaw {
                 .map(node -> mapper.readValue(node.toString(), HuobiMarketDepthMessage.class));
     }
 
+   public Observable<HuobiTradeDetailsMessage.HuobiTradeDetails> getHuobiTrade(CurrencyPair currencyPair) {
+
+        String topic = String.format("market.%s.trade.detail", HuobiAdapters.adaptCurrencyPair(currencyPair));
+        return service.subscribeChannel(topic)
+                .map(node -> mapper.readValue(node.toString(), HuobiTradeDetailsMessage.class))
+                .flatMapIterable(message -> message.getData().getData());
+    }
 }

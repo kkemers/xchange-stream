@@ -6,27 +6,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
 import java.util.List;
 
-public class HuobiMarketDepthMessage {
-
-    private final String channel;
-    private final Long ts;
+public class HuobiMarketDepthMessage extends HuobiMessage {
 
     private final HuobiMarketDepthData data;
 
     public HuobiMarketDepthMessage(@JsonProperty("ch") String channel,
                                    @JsonProperty("ts") Long ts,
                                    @JsonProperty("tick") HuobiMarketDepthData data) {
-        this.channel = channel;
-        this.ts = ts;
+        super(channel, ts);
         this.data = data;
-    }
-
-    public String getChannel() {
-        return channel;
-    }
-
-    public Long getTs() {
-        return ts;
     }
 
     public HuobiMarketDepthData getData() {

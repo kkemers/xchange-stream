@@ -1,9 +1,11 @@
 package info.bitrich.xchangestream.huobi.utils;
 
 import info.bitrich.xchangestream.huobi.dto.HuobiMarketDepthMessage;
+import info.bitrich.xchangestream.huobi.dto.HuobiTradeDetailsMessage;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.knowm.xchange.dto.marketdata.Trade;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
 import java.util.Date;
@@ -21,6 +23,28 @@ public class HuobiAdapters {
         List<LimitOrder> asks = adaptOrderBookLevels(currencyPair, Order.OrderType.ASK, orderBook.getData().getAsks());
         List<LimitOrder> bids = adaptOrderBookLevels(currencyPair, Order.OrderType.BID, orderBook.getData().getBids());
         return new OrderBook(new Date(orderBook.getData().getTs()), asks, bids);
+    }
+
+    public static Trade adaptTrade(CurrencyPair currencyPair, HuobiTradeDetailsMessage.HuobiTradeDetails trade) {
+        return new Trade.Builder()
+                .id(trade.getId().toString())
+                .timestamp(new Date(trade.getTs()))
+                .currencyPair(currencyPair)
+                .type(adaptOrderType(trade.getDirection()))
+                .originalAmount(trade.getAmount())
+                .price(trade.getPrice())
+                .build();
+    }
+
+    private static Order.OrderType adaptOrderType(String direction) {
+        switch (direction) {
+            case "buy":
+                return Order.OrderType.BID;
+            case "sell":
+                return Order.OrderType.ASK;
+            default:
+                throw new IllegalArgumentException(String.format("Unexpected direction: %s", direction));
+        }
     }
 
     private static List<LimitOrder> adaptOrderBookLevels(CurrencyPair currencyPair, Order.OrderType orderType,
