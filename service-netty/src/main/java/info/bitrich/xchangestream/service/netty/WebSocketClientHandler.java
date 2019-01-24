@@ -1,5 +1,7 @@
 package info.bitrich.xchangestream.service.netty;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.http.websocketx.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,29 +11,32 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.WebSocketClientHandshaker;
-import io.netty.handler.codec.http.websocketx.WebSocketFrame;
-import io.netty.handler.codec.http.websocketx.WebSocketHandshakeException;
 import io.netty.util.CharsetUtil;
 
 public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> {
     private static final Logger LOG = LoggerFactory.getLogger(WebSocketClientHandler.class);
 
-    public interface WebSocketMessageHandler {
-        public void onMessage(String message);
+    @FunctionalInterface
+    public interface WebSocketTextMessageHandler {
+        void onMessage(String message);
+    }
+
+    @FunctionalInterface
+    public interface WebSocketBinaryMessageHandler {
+        void onMessage(ByteBuf message);
     }
 
     private final WebSocketClientHandshaker handshaker;
-    private final WebSocketMessageHandler handler;
+    private final WebSocketTextMessageHandler textMessagehandler;
+    private final WebSocketBinaryMessageHandler binaryMessagehandler;
     private ChannelPromise handshakeFuture;
 
-    public WebSocketClientHandler(WebSocketClientHandshaker handshaker, WebSocketMessageHandler handler) {
+    public WebSocketClientHandler(WebSocketClientHandshaker handshaker,
+                                  WebSocketTextMessageHandler textMessagehandler,
+                                  WebSocketBinaryMessageHandler binaryMessagehandler) {
         this.handshaker = handshaker;
-        this.handler = handler;
+        this.textMessagehandler = textMessagehandler;
+        this.binaryMessagehandler = binaryMessagehandler;
     }
 
     public ChannelFuture handshakeFuture() {
@@ -77,7 +82,10 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
         WebSocketFrame frame = (WebSocketFrame)msg;
         if (frame instanceof TextWebSocketFrame) {
             TextWebSocketFrame textFrame = (TextWebSocketFrame)frame;
-            handler.onMessage(textFrame.text());
+            textMessagehandler.onMessage(textFrame.text());
+        } else if (frame instanceof BinaryWebSocketFrame) {
+            BinaryWebSocketFrame binaryFrame = (BinaryWebSocketFrame)frame;
+            binaryMessagehandler.onMessage(binaryFrame.content());
         } else if (frame instanceof PingWebSocketFrame) {
             LOG.debug("WebSocket Client received ping");
             ch.writeAndFlush(new PongWebSocketFrame(frame.content().retain()));

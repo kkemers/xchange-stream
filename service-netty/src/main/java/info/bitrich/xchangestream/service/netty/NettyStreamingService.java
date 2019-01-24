@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import info.bitrich.xchangestream.service.netty.strategy.HeartbeatStrategy;
 import info.bitrich.xchangestream.service.netty.strategy.DefaultHeartbeatStrategy;
+import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.websocketx.*;
 import io.reactivex.*;
 import io.reactivex.disposables.Disposable;
@@ -153,7 +154,11 @@ public abstract class NettyStreamingService<T> {
      *
      * @param message Content of the message from the server.
      */
-    public abstract void messageHandler(String message);
+    protected abstract void messageHandler(String message);
+
+    protected void messageHandler(ByteBuf message) {
+        throw new IllegalStateException(String.format("Got unexpected binary message: %s", message));
+    }
 
     public void sendMessage(String message) {
         LOG.trace("<=: {}", message);
@@ -311,14 +316,20 @@ public abstract class NettyStreamingService<T> {
         return WebSocketClientCompressionHandler.INSTANCE;
     }
 
-    protected WebSocketClientHandler getWebSocketClientHandler(WebSocketClientHandshaker handshaker,
-                                                               WebSocketClientHandler.WebSocketMessageHandler handler) {
-        return new NettyWebSocketClientHandler(handshaker, handler);
+    protected WebSocketClientHandler getWebSocketClientHandler(
+            WebSocketClientHandshaker handshaker,
+            WebSocketClientHandler.WebSocketTextMessageHandler textMessageHandler,
+            WebSocketClientHandler.WebSocketBinaryMessageHandler binaryMessageHandler) {
+
+        return new NettyWebSocketClientHandler(handshaker, textMessageHandler, binaryMessageHandler);
     }
 
     protected class NettyWebSocketClientHandler extends WebSocketClientHandler {
-        protected NettyWebSocketClientHandler(WebSocketClientHandshaker handshaker, WebSocketMessageHandler handler) {
-            super(handshaker, handler);
+
+        protected NettyWebSocketClientHandler(WebSocketClientHandshaker handshaker,
+                                              WebSocketTextMessageHandler textMessageHandler,
+                                              WebSocketBinaryMessageHandler binaryMessageHandler) {
+            super(handshaker, textMessageHandler, binaryMessageHandler);
         }
 
         @Override
@@ -385,7 +396,7 @@ public abstract class NettyStreamingService<T> {
 
                 final WebSocketClientHandler handler = getWebSocketClientHandler(WebSocketClientHandshakerFactory.newHandshaker(
                         uri, WebSocketVersion.V13, null, true, new DefaultHttpHeaders(), maxFramePayloadLength),
-                        this::messageHandler);
+                        this::messageHandler, this::messageHandler);
 
                 this.eventLoopGroup = new NioEventLoopGroup();
 

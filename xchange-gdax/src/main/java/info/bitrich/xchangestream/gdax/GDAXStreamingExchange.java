@@ -88,7 +88,7 @@ public class GDAXStreamingExchange extends GDAXExchange implements StreamingExch
      *
      * @param channelInactiveHandler a WebSocketMessageHandler instance.
      */
-    public void setChannelInactiveHandler(WebSocketClientHandler.WebSocketMessageHandler channelInactiveHandler) {
+    public void setChannelInactiveHandler(WebSocketClientHandler.WebSocketTextMessageHandler channelInactiveHandler) {
         streamingService.setChannelInactiveHandler(channelInactiveHandler);
     }
 
