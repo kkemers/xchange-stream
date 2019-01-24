@@ -5,9 +5,11 @@ import info.bitrich.xchangestream.huobi.dto.HuobiTradeDetailsMessage;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trade;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -59,6 +61,37 @@ public class HuobiAdapters {
         return new LimitOrder.Builder(orderType, currencyPair)
                 .limitPrice(level.getPrice())
                 .originalAmount(level.getAmount())
+                .build();
+    }
+
+    public static Ticker adaptOrderBookToTicker(CurrencyPair currencyPair, HuobiMarketDepthMessage orderBook) {
+
+        List<HuobiMarketDepthMessage.HuobiMarketDepthLevel> bids = orderBook.getData().getBids();
+        List<HuobiMarketDepthMessage.HuobiMarketDepthLevel> asks = orderBook.getData().getAsks();
+
+        BigDecimal bidPrice = null;
+        BigDecimal bidAmount = null;
+        if (!bids.isEmpty()) {
+            HuobiMarketDepthMessage.HuobiMarketDepthLevel bid = bids.get(0);
+            bidPrice = bid.getPrice();
+            bidAmount = bid.getAmount();
+        }
+
+        BigDecimal askPrice = null;
+        BigDecimal askAmount = null;
+        if (!asks.isEmpty()) {
+            HuobiMarketDepthMessage.HuobiMarketDepthLevel ask = asks.get(0);
+            askPrice = ask.getPrice();
+            askAmount = ask.getAmount();
+        }
+
+        return new Ticker.Builder()
+                .currencyPair(currencyPair)
+                .timestamp(new Date(orderBook.getData().getTs()))
+                .bid(bidPrice)
+                .ask(askPrice)
+                .bidSize(bidAmount)
+                .askSize(askAmount)
                 .build();
     }
 }
