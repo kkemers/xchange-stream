@@ -4,42 +4,79 @@ import info.bitrich.xchangestream.core.ProductSubscription;
 import info.bitrich.xchangestream.core.StreamingExchange;
 import info.bitrich.xchangestream.core.StreamingMarketDataService;
 import info.bitrich.xchangestream.core.StreamingPrivateDataService;
+import info.bitrich.xchangestream.huobi.private_api.HuobiPrivateStreamingService;
+import info.bitrich.xchangestream.huobi.private_api.HuobiStreamingPrivateDataService;
+import info.bitrich.xchangestream.huobi.public_api.HuobiPublicStreamingService;
+import info.bitrich.xchangestream.huobi.public_api.HuobiStreamingMarketDataService;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.huobi.HuobiExchange;
-import org.knowm.xchange.exceptions.NotYetImplementedForExchangeException;
-import si.mazi.rescu.SynchronizedValueFactory;
 
 public class HuobiStreamingExchange extends HuobiExchange implements StreamingExchange {
 
-    private static final String API_URI = "wss://api.huobi.pro/ws";
+    private static final String PUBLIC_API_URI = "wss://api.huobi.pro/ws";
+    private static final String PRIVATE_API_URI = "wss://api.huobi.pro/ws/v1";
 
-    private final HuobiStreamingService streamingService;
+    private final HuobiPublicStreamingService publicStreamingService;
+    private final HuobiPrivateStreamingService privateStreamingService;
     private final HuobiStreamingMarketDataService streamingMarketDataService;
+    private final HuobiStreamingPrivateDataService streamingPrivateDataService;
 
-    public HuobiStreamingExchange() {
-        this(new HuobiStreamingService(API_URI));
+    private StreamType streamType = StreamType.BOTH;
+
+    /**
+     * Enum to set what type stream are we using
+     *
+     * It's needed because Huobi uses two connections, one for market data, one for client private data, and use this
+     * enum as parameter at connect allows client to create only the needed one.
+     */
+    public enum StreamType {
+        PUBLIC,
+        PRIVATE,
+        BOTH
     }
 
-    public HuobiStreamingExchange(HuobiStreamingService streamingService) {
-        this.streamingService = streamingService;
-        streamingMarketDataService = new HuobiStreamingMarketDataService(streamingService);
+    public HuobiStreamingExchange() {
+        this.publicStreamingService = new HuobiPublicStreamingService(this, PUBLIC_API_URI);
+        this.privateStreamingService = new HuobiPrivateStreamingService(this, PRIVATE_API_URI);
+
+        streamingMarketDataService = new HuobiStreamingMarketDataService(publicStreamingService);
+        streamingPrivateDataService = new HuobiStreamingPrivateDataService(privateStreamingService);
+    }
+
+    protected HuobiStreamingExchange(HuobiPublicStreamingService publicStreamingService,
+                                     HuobiPrivateStreamingService privateStreamingService) {
+        this.publicStreamingService = publicStreamingService;
+        this.privateStreamingService = privateStreamingService;
+
+        streamingMarketDataService = new HuobiStreamingMarketDataService(publicStreamingService);
+        streamingPrivateDataService = new HuobiStreamingPrivateDataService(privateStreamingService);
     }
 
     @Override
     public Completable connect(ProductSubscription... args) {
-        return streamingService.connect();
+        return connect(StreamType.BOTH);
+    }
+
+    public Completable connect(StreamType streamType) {
+        this.streamType = streamType;
+
+        switch (streamType) {
+            case PUBLIC:
+                return publicStreamingService.connect();
+            case PRIVATE:
+                return privateStreamingService.connect();
+            case BOTH:
+                return publicStreamingService.connect().andThen(privateStreamingService.connect());
+            default:
+                throw new IllegalArgumentException(String.format("Unknown stream type: %s", streamType));
+        }
     }
 
     @Override
     public Completable disconnect() {
-        return streamingService.disconnect();
-    }
-
-    @Override
-    public SynchronizedValueFactory<Long> getNonceFactory() {
-        return null;
+        return publicStreamingService.disconnect().andThen(privateStreamingService.disconnect());
     }
 
     @Override
@@ -56,22 +93,22 @@ public class HuobiStreamingExchange extends HuobiExchange implements StreamingEx
 
     @Override
     public StreamingPrivateDataService getStreamingPrivateDataService() {
-        throw new NotYetImplementedForExchangeException();
+        return streamingPrivateDataService;
     }
 
     @Override
     public boolean isAlive() {
-        return streamingService.isSocketOpen();
+        return publicStreamingService.isSocketOpen();
     }
 
     @Override
     public Observable<Boolean> ready() {
-        return streamingService.connected();
+        return publicStreamingService.connected();
     }
 
     @Override
     public void useCompressedMessages(boolean compressedMessages) {
-        streamingService.useCompressedMessages(compressedMessages);
+        publicStreamingService.useCompressedMessages(compressedMessages);
     }
 
 

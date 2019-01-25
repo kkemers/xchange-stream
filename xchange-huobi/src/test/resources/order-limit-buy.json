@@ -1,0 +1,23 @@
+{
+  "op": "notify",
+  "ts": 1548422818690,
+  "topic": "orders.*",
+  "data": {
+    "seq-id": 100096414519,
+    "order-id": 22970020355,
+    "symbol": "btcusdt",
+    "account-id": 4109579,
+    "order-amount": "0.0002",
+    "order-price": "3247.66",
+    "created-at": 1548422818512,
+    "order-type": "buy-limit",
+    "order-source": "spot-web",
+    "order-state": "submitted",
+    "role": "taker",
+    "price": "3247.66",
+    "filled-amount": "0",
+    "unfilled-amount": "0.0002",
+    "filled-cash-amount": "0",
+    "filled-fees": "0"
+  }
+}

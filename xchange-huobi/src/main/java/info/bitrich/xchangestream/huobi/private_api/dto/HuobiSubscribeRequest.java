@@ -1,4 +1,4 @@
-package info.bitrich.xchangestream.huobi.dto;
+package info.bitrich.xchangestream.huobi.private_api.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -14,12 +14,16 @@ public class HuobiSubscribeRequest {
         this.topic = topic;
     }
 
-    @JsonProperty("id")
+    @JsonProperty("cid")
     public String getId() {
         return id;
     }
 
-    @JsonProperty("sub")
+    @JsonProperty("op")
+    public String getOperation() {
+        return "sub";
+    }
+
     public String getTopic() {
         return topic;
     }

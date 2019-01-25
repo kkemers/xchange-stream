@@ -1,6 +1,5 @@
 package info.bitrich.xchangestream.core;
 
-import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.exceptions.ExchangeException;
@@ -40,36 +39,48 @@ public enum StreamingExchangeFactory {
      * @param exchangeClassName the fully-qualified class name of the exchange
      * @return a new exchange instance configured with the default {@link org.knowm.xchange.ExchangeSpecification}
      */
-    public StreamingExchange createExchangeWithoutSpecification(String exchangeClassName) {
+    public <T extends StreamingExchange> T createExchangeWithoutSpecification(String exchangeClassName) {
 
         Assert.notNull(exchangeClassName, "exchangeClassName cannot be null");
+        Assert.isTrue(!exchangeClassName.isEmpty(), "exchangeClassName cannot be empty");
 
-        LOG.debug("Creating default exchange from class name");
-
-        // Attempt to create an instance of the exchange provider
         try {
+            Class<?> exchangeClass = Class.forName(exchangeClassName);
 
-            // Attempt to locate the exchange provider on the classpath
-            Class exchangeProviderClass = Class.forName(exchangeClassName);
-
-            // Test that the class implements Exchange
-            if (Exchange.class.isAssignableFrom(exchangeProviderClass)) {
-                // Instantiate through the default constructor and use the default exchange specification
-                StreamingExchange exchange = (StreamingExchange) exchangeProviderClass.newInstance();
-                return exchange;
-            } else {
-                throw new ExchangeException("Class '" + exchangeClassName + "' does not implement Exchange");
+            if (!StreamingExchange.class.isAssignableFrom(exchangeClass)) {
+                throw new ExchangeException(
+                        String.format("Class '%s' does not implement 'StreamingExchange'", exchangeClass.getName()));
             }
+
+            return createExchangeWithoutSpecification((Class<T>) exchangeClass);
         } catch (ClassNotFoundException e) {
             throw new ExchangeException("Problem creating Exchange (class not found)", e);
-        } catch (InstantiationException e) {
-            throw new ExchangeException("Problem creating Exchange (instantiation)", e);
-        } catch (IllegalAccessException e) {
-            throw new ExchangeException("Problem creating Exchange (illegal access)", e);
         }
+    }
 
-        // Cannot be here due to exceptions
+    /**
+     * Create an StreamingExchange object without default ExchangeSpecification
+     * <p>
+     * The factory is parameterised with the exchange implementation class. This must be a class extending
+     * {@link info.bitrich.xchangestream.core.StreamingExchange}.
+     * </p>
+     *
+     * @param exchangeClass class of the exchange
+     * @return a new exchange instance configured with the default {@link org.knowm.xchange.ExchangeSpecification}
+     */
+    public <T extends StreamingExchange> T createExchangeWithoutSpecification(Class<T> exchangeClass) {
 
+        Assert.notNull(exchangeClass, "exchangeClass cannot be null");
+
+        LOG.debug("Creating default exchange from class '{}'", exchangeClass);
+
+        try {
+            return exchangeClass.newInstance();
+        } catch (InstantiationException e) {
+            throw new ExchangeException("Problem creating StreamingExchange (instantiation)", e);
+        } catch (IllegalAccessException e) {
+            throw new ExchangeException("Problem creating StreamingExchange (illegal access)", e);
+        }
     }
 
     /**
@@ -82,16 +93,25 @@ public enum StreamingExchangeFactory {
      * @param exchangeClassName the fully-qualified class name of the exchange
      * @return a new exchange instance configured with the default {@link org.knowm.xchange.ExchangeSpecification}
      */
-    public StreamingExchange createExchange(String exchangeClassName) {
+    public <T extends StreamingExchange> T createExchange(String exchangeClassName) {
 
-        Assert.notNull(exchangeClassName, "exchangeClassName cannot be null");
-
-        LOG.debug("Creating default exchange from class name");
-
-        StreamingExchange exchange = createExchangeWithoutSpecification(exchangeClassName);
+        T exchange = createExchangeWithoutSpecification(exchangeClassName);
         exchange.applySpecification(exchange.getDefaultExchangeSpecification());
         return exchange;
+    }
 
+    /**
+     * Create an StreamingExchange object with default ExchangeSpecification
+     * <p>
+     * The factory is parameterised with the exchange implementation class. This must be a class extending
+     * {@link info.bitrich.xchangestream.core.StreamingExchange}.
+     * </p>
+     *
+     * @param exchangeClass class of the exchange
+     * @return a new exchange instance configured with the default {@link org.knowm.xchange.ExchangeSpecification}
+     */
+    public <T extends StreamingExchange> T createExchange(Class<T> exchangeClass) {
+        return createExchange(exchangeClass.getName());
     }
 
     /**
@@ -102,17 +122,17 @@ public enum StreamingExchangeFactory {
      * be a class extending {@link info.bitrich.xchangestream.core.StreamingExchange}.
      *
      * @param exchangeClassName the fully-qualified class name of the exchange
-     * @param apiKey the public API key
-     * @param secretKey the secret API key
+     * @param apiKey            the public API key
+     * @param secretKey         the secret API key
      * @return a new exchange instance configured with the default {@link org.knowm.xchange.ExchangeSpecification}
      */
-    public StreamingExchange createExchange(String exchangeClassName, String apiKey, String secretKey) {
+    public <T extends StreamingExchange> T createExchange(String exchangeClassName, String apiKey, String secretKey) {
 
         Assert.notNull(exchangeClassName, "exchangeClassName cannot be null");
 
         LOG.debug("Creating default exchange from class name");
 
-        StreamingExchange exchange = createExchangeWithoutSpecification(exchangeClassName);
+        T exchange = createExchangeWithoutSpecification(exchangeClassName);
 
         ExchangeSpecification defaultExchangeSpecification = exchange.getDefaultExchangeSpecification();
         if (apiKey != null) {
@@ -127,44 +147,35 @@ public enum StreamingExchangeFactory {
     }
 
     /**
+     * Create an StreamingExchange object with default ExchangeSpecification with authentication info and API
+     * keys provided through parameters
+     *
+     * <p>The factory is parameterized with the exchange implementation class. This must
+     * be a class extending {@link info.bitrich.xchangestream.core.StreamingExchange}.
+     *
+     * @param exchangeClass class of the exchange
+     * @param apiKey        the public API key
+     * @param secretKey     the secret API key
+     * @return a new exchange instance configured with the default {@link org.knowm.xchange.ExchangeSpecification}
+     */
+    public <T extends StreamingExchange> T createExchange(Class<T> exchangeClass, String apiKey, String secretKey) {
+
+        return createExchange(exchangeClass.getName(), apiKey, secretKey);
+    }
+
+    /**
      * Create an StreamingExchange object default ExchangeSpecification
      *
      * @param exchangeSpecification the exchange specification
      * @return a new exchange instance configured with the provided {@link org.knowm.xchange.ExchangeSpecification}
      */
-    public StreamingExchange createExchange(ExchangeSpecification exchangeSpecification) {
+    public <T extends StreamingExchange> T createExchange(ExchangeSpecification exchangeSpecification) {
 
         Assert.notNull(exchangeSpecification, "exchangeSpecfication cannot be null");
 
-        LOG.debug("Creating exchange from specification");
-
-        String exchangeClassName = exchangeSpecification.getExchangeClassName();
-
-        // Attempt to create an instance of the exchange provider
-        try {
-
-            // Attempt to locate the exchange provider on the classpath
-            Class exchangeProviderClass = Class.forName(exchangeClassName);
-
-            // Test that the class implements Exchange
-            if (Exchange.class.isAssignableFrom(exchangeProviderClass)) {
-                // Instantiate through the default constructor
-                StreamingExchange exchange = (StreamingExchange) exchangeProviderClass.newInstance();
-                exchange.applySpecification(exchangeSpecification);
-                return exchange;
-            } else {
-                throw new ExchangeException("Class '" + exchangeClassName + "' does not implement Exchange");
-            }
-        } catch (ClassNotFoundException e) {
-            throw new ExchangeException("Problem starting exchange provider (class not found)", e);
-        } catch (InstantiationException e) {
-            throw new ExchangeException("Problem starting exchange provider (instantiation)", e);
-        } catch (IllegalAccessException e) {
-            throw new ExchangeException("Problem starting exchange provider (illegal access)", e);
-        }
-
-        // Cannot be here due to exceptions
-
+        T exchange = createExchangeWithoutSpecification(exchangeSpecification.getExchangeClassName());
+        exchange.applySpecification(exchangeSpecification);
+        return exchange;
     }
 
 }

@@ -1,4 +1,4 @@
-package info.bitrich.xchangestream.huobi.dto;
+package info.bitrich.xchangestream.huobi.public_api.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

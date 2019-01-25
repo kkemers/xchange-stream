@@ -1,9 +1,8 @@
-package info.bitrich.xchangestream.huobi;
+package info.bitrich.xchangestream.huobi.public_api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import info.bitrich.xchangestream.huobi.dto.HuobiMarketDepthMessage;
-import info.bitrich.xchangestream.huobi.dto.HuobiTradeDetailsMessage;
-import info.bitrich.xchangestream.huobi.utils.HuobiAdapters;
+import info.bitrich.xchangestream.huobi.public_api.dto.HuobiMarketDepthMessage;
+import info.bitrich.xchangestream.huobi.public_api.dto.HuobiTradeDetailsMessage;
 import io.reactivex.Observable;
 import org.knowm.xchange.currency.CurrencyPair;
 
@@ -11,9 +10,9 @@ import org.knowm.xchange.currency.CurrencyPair;
 public class HuobiStreamingMarketDataServiceRaw {
 
     private final ObjectMapper mapper = new ObjectMapper();
-    private final HuobiStreamingService service;
+    private final HuobiPublicStreamingService service;
 
-    public HuobiStreamingMarketDataServiceRaw(HuobiStreamingService service) {
+    public HuobiStreamingMarketDataServiceRaw(HuobiPublicStreamingService service) {
         this.service = service;
     }
 

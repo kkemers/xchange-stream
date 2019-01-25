@@ -1,4 +1,4 @@
-package info.bitrich.xchangestream.huobi.dto;
+package info.bitrich.xchangestream.huobi.private_api.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -10,8 +10,13 @@ public class HuobiPongMessage {
         this.pong = pong;
     }
 
-    @JsonProperty("pong")
+    @JsonProperty("ts")
     public Long getPong() {
         return pong;
+    }
+
+    @JsonProperty("op")
+    public String getOperation() {
+        return "pong";
     }
 }

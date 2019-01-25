@@ -2,7 +2,7 @@ package info.bitrich.xchangestream.huobi.netty;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import info.bitrich.xchangestream.huobi.dto.HuobiPingRequest;
+import info.bitrich.xchangestream.huobi.public_api.dto.HuobiPingRequest;
 import info.bitrich.xchangestream.service.netty.strategy.HeartbeatStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

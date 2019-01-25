@@ -1,4 +1,4 @@
-package info.bitrich.xchangestream.huobi.dto;
+package info.bitrich.xchangestream.huobi.private_api.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -10,8 +10,13 @@ public class HuobiPingRequest {
         this.ping = System.currentTimeMillis();
     }
 
-    @JsonProperty("ping")
+    @JsonProperty("ts")
     public Long getPing() {
         return ping;
+    }
+
+    @JsonProperty("op")
+    public String getOperation() {
+        return "ping";
     }
 }

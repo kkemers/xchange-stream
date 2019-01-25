@@ -1,8 +1,8 @@
 package info.bitrich.xchangestream.huobi.integration;
 
-import info.bitrich.xchangestream.core.StreamingExchange;
+import info.bitrich.xchangestream.core.StreamingExchangeFactory;
 import info.bitrich.xchangestream.huobi.HuobiStreamingExchange;
-import info.bitrich.xchangestream.huobi.HuobiStreamingMarketDataService;
+import info.bitrich.xchangestream.huobi.public_api.HuobiStreamingMarketDataService;
 import io.reactivex.observers.TestObserver;
 import org.junit.After;
 import org.junit.Assert;
@@ -22,15 +22,13 @@ import static org.hamcrest.CoreMatchers.is;
 
 public class HuobiStreamingMarketDataServiceTests {
 
-    private StreamingExchange streamingExchange;
+    private HuobiStreamingExchange streamingExchange;
     private HuobiStreamingMarketDataService streamingMarketDataService;
 
     @Before
     public void setup() {
-        streamingExchange = new HuobiStreamingExchange();
-        streamingExchange.useCompressedMessages(true);
-
-        streamingExchange.connect().blockingAwait();
+        streamingExchange = StreamingExchangeFactory.INSTANCE.createExchange(HuobiStreamingExchange.class);
+        streamingExchange.connect(HuobiStreamingExchange.StreamType.PUBLIC).blockingAwait();
         streamingMarketDataService =
                 (HuobiStreamingMarketDataService) streamingExchange.getStreamingMarketDataService();
     }
@@ -75,5 +73,11 @@ public class HuobiStreamingMarketDataServiceTests {
         Assert.assertTrue(trade.getPrice().compareTo(BigDecimal.ZERO) > 0);
         Assert.assertTrue(trade.getOriginalAmount().compareTo(BigDecimal.ZERO) > 0);
         Assert.assertThat(trade.getType(), either(is(Order.OrderType.BID)).or(is(Order.OrderType.ASK)));
+    }
+
+    @Test
+    public void TODO() throws InterruptedException {
+
+        Thread.sleep(10000000);
     }
 }

@@ -1,36 +1,41 @@
-package info.bitrich.xchangestream.huobi;
+package info.bitrich.xchangestream.huobi.public_api;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import info.bitrich.xchangestream.huobi.dto.HuobiPongMessage;
-import info.bitrich.xchangestream.huobi.dto.HuobiSubscribeRequest;
-import info.bitrich.xchangestream.huobi.dto.HuobiUnsubscribeRequest;
+import info.bitrich.xchangestream.core.StreamingExchange;
+import info.bitrich.xchangestream.huobi.public_api.dto.HuobiPingRequest;
+import info.bitrich.xchangestream.huobi.public_api.dto.HuobiPongMessage;
+import info.bitrich.xchangestream.huobi.public_api.dto.HuobiSubscribeRequest;
+import info.bitrich.xchangestream.huobi.public_api.dto.HuobiUnsubscribeRequest;
 import info.bitrich.xchangestream.huobi.netty.HuobiHeartbeatStrategy;
 import info.bitrich.xchangestream.service.netty.JsonNettyStreamingService;
 import info.bitrich.xchangestream.service.netty.NettyStreamingService;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
+import io.reactivex.subjects.CompletableSubject;
 import org.knowm.xchange.exceptions.ExchangeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.GZIPInputStream;
 
-public class HuobiStreamingService extends JsonNettyStreamingService {
+public class HuobiPublicStreamingService extends JsonNettyStreamingService {
 
-    private static final Logger LOG = LoggerFactory.getLogger(HuobiStreamingService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(HuobiPublicStreamingService.class);
 
     private final ObjectMapper mapper = new ObjectMapper();
-
     private final Map<String, String> subscriptionRequests = new ConcurrentHashMap<>();
 
-    public HuobiStreamingService(String apiUrl) {
+    public HuobiPublicStreamingService(StreamingExchange exchange, String apiUrl) {
         super(apiUrl, Integer.MAX_VALUE,
                 NettyStreamingService.DEFAULT_CONNECTION_TIMEOUT, NettyStreamingService.DEFAULT_RETRY_DURATION,
                 new HuobiHeartbeatStrategy());
@@ -116,23 +121,30 @@ public class HuobiStreamingService extends JsonNettyStreamingService {
     private boolean handleErrorIfExists(JsonNode message) {
 
         JsonNode status = message.get("status");
-        if (status != null && !status.asText().equals("ok")) {
+        if (status == null || status.asText().equals("ok")) {
+            return false;
+        }
 
-            String id = message.get("id").asText();
-            String errCode = message.get("err-code").asText();
-            String errMessage = message.get("err-msg").asText();
+        LOG.error("Exchange returns an error: {}", message);
 
-            String channel = subscriptionRequests.remove(id);
-            if (channel == null) {
-                LOG.error("Got error from exchange for unknown request {}: {}", id, errMessage);
-                return true;
-            }
+        String errCode = message.get("err-code").asText();
+        String errMessage = message.get("err-msg").asText();
 
-            handleChannelError(channel, new ExchangeException(String.format("%s: %s", errCode, errMessage)));
+        JsonNode idNode = message.get("id");
+        if (idNode == null) {
+            LOG.warn("Error message has no request id");
             return true;
         }
 
-        return false;
+        String id = idNode.asText();
+        String channel = subscriptionRequests.remove(id);
+        if (channel == null) {
+            LOG.error("Got error from exchange for unknown request {}: {}", id, errMessage);
+            return true;
+        }
+
+        handleChannelError(channel, new ExchangeException(String.format("%s: %s", errCode, errMessage)));
+        return true;
     }
 
     private boolean handlePingIfExists(JsonNode message) {
@@ -161,5 +173,4 @@ public class HuobiStreamingService extends JsonNettyStreamingService {
 
         return false;
     }
-
 }

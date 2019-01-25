@@ -1,7 +1,6 @@
-package info.bitrich.xchangestream.huobi;
+package info.bitrich.xchangestream.huobi.public_api;
 
 import info.bitrich.xchangestream.core.StreamingMarketDataService;
-import info.bitrich.xchangestream.huobi.utils.HuobiAdapters;
 import io.reactivex.Observable;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.marketdata.OrderBook;
@@ -14,7 +13,7 @@ public class HuobiStreamingMarketDataService
         extends HuobiStreamingMarketDataServiceRaw
         implements StreamingMarketDataService {
 
-    public HuobiStreamingMarketDataService(HuobiStreamingService service) {
+    public HuobiStreamingMarketDataService(HuobiPublicStreamingService service) {
         super(service);
     }
 

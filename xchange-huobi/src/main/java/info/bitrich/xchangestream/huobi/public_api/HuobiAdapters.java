@@ -1,7 +1,7 @@
-package info.bitrich.xchangestream.huobi.utils;
+package info.bitrich.xchangestream.huobi.public_api;
 
-import info.bitrich.xchangestream.huobi.dto.HuobiMarketDepthMessage;
-import info.bitrich.xchangestream.huobi.dto.HuobiTradeDetailsMessage;
+import info.bitrich.xchangestream.huobi.public_api.dto.HuobiMarketDepthMessage;
+import info.bitrich.xchangestream.huobi.public_api.dto.HuobiTradeDetailsMessage;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.marketdata.OrderBook;
