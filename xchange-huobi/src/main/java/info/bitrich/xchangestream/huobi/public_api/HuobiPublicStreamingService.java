@@ -5,16 +5,15 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import info.bitrich.xchangestream.core.StreamingExchange;
-import info.bitrich.xchangestream.huobi.public_api.dto.HuobiPingRequest;
+import info.bitrich.xchangestream.huobi.netty.HuobiHeartbeatStrategy;
 import info.bitrich.xchangestream.huobi.public_api.dto.HuobiPongMessage;
 import info.bitrich.xchangestream.huobi.public_api.dto.HuobiSubscribeRequest;
 import info.bitrich.xchangestream.huobi.public_api.dto.HuobiUnsubscribeRequest;
-import info.bitrich.xchangestream.huobi.netty.HuobiHeartbeatStrategy;
 import info.bitrich.xchangestream.service.netty.JsonNettyStreamingService;
 import info.bitrich.xchangestream.service.netty.NettyStreamingService;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
-import io.reactivex.subjects.CompletableSubject;
+import io.reactivex.Observable;
 import org.knowm.xchange.exceptions.ExchangeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,6 +57,10 @@ public class HuobiPublicStreamingService extends JsonNettyStreamingService {
     public String getUnsubscribeMessage(String channelName, Object... args) throws IOException {
         HuobiUnsubscribeRequest message = new HuobiUnsubscribeRequest(channelName);
         return mapper.writeValueAsString(message);
+    }
+
+    public Observable<Boolean> ready() {
+        return connected();
     }
 
     @Override

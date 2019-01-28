@@ -22,21 +22,25 @@ public class HuobiAdapters {
 
         Type type = adaptType(data.getOrderType());
 
-        // TODO: Describe amounts
-
         if (type == Type.LIMIT) {
-            LimitOrder.Builder builder = (LimitOrder.Builder)
+            LimitOrder.Builder builder =
                     new LimitOrder.Builder(adaptOrderType(data.getOrderType()), adaptCurrencyPair(data.getSymbol()))
                             .id(data.getOrderId().toString())
                             .timestamp(new Date(data.getCreatedAt()))
                             .originalAmount(data.getOrderAmount())
                             .remainingAmount(data.getUnfilledAmount())
                             .limitPrice(data.getOrderPrice())
+                            .averagePrice(data.getOrderPrice())
                             .orderStatus(adaptOrderStatus(data.getOrderState()));
             LimitOrder limitOrder = builder.build();
             limitOrder.setFee(data.getFilledFees());
             return limitOrder;
         }
+
+        /* Huobi returns "amount" for market orders only either in base currency, or in counter currency
+        based on what side this order has. Since in industry is more common to use always a base currency,
+        we use "filled-amount" field that always in base currency.
+        */
 
         if (type == Type.MARKET) {
             MarketOrder.Builder builder = (MarketOrder.Builder)

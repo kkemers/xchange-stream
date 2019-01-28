@@ -264,8 +264,6 @@ public abstract class NettyStreamingService<T> {
 
     protected void handleMessage(T message) {
 
-        LOG.trace("=>: {}", message);
-
         String channel = getChannel(message);
         if (channel == null) {
             LOG.debug("Missing channel from: {}", message);

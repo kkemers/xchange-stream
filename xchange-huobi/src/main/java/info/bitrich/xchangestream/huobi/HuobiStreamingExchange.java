@@ -27,7 +27,7 @@ public class HuobiStreamingExchange extends HuobiExchange implements StreamingEx
 
     /**
      * Enum to set what type stream are we using
-     *
+     * <p>
      * It's needed because Huobi uses two connections, one for market data, one for client private data, and use this
      * enum as parameter at connect allows client to create only the needed one.
      */
@@ -98,12 +98,34 @@ public class HuobiStreamingExchange extends HuobiExchange implements StreamingEx
 
     @Override
     public boolean isAlive() {
-        return publicStreamingService.isSocketOpen();
+        switch (streamType) {
+            case PUBLIC:
+                return publicStreamingService.isSocketOpen();
+            case PRIVATE:
+                return privateStreamingService.isSocketOpen();
+            case BOTH:
+                return publicStreamingService.isSocketOpen() && privateStreamingService.isSocketOpen();
+            default:
+                throw new IllegalArgumentException(String.format("Unknown stream type: %s", streamType));
+        }
     }
 
     @Override
     public Observable<Boolean> ready() {
-        return publicStreamingService.connected();
+        switch (streamType) {
+            case PUBLIC:
+                return publicStreamingService.ready();
+            case PRIVATE:
+                return privateStreamingService.ready();
+            case BOTH:
+                return Observable
+                        .combineLatest(publicStreamingService.ready(),
+                                publicStreamingService.ready(), Boolean::logicalAnd)
+                        .distinctUntilChanged()
+                        .share();
+            default:
+                throw new IllegalArgumentException(String.format("Unknown stream type: %s", streamType));
+        }
     }
 
     @Override

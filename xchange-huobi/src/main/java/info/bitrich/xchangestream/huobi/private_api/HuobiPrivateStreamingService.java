@@ -12,7 +12,8 @@ import info.bitrich.xchangestream.service.netty.JsonNettyStreamingService;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.reactivex.Completable;
-import io.reactivex.subjects.CompletableSubject;
+import io.reactivex.Observable;
+import io.reactivex.subjects.BehaviorSubject;
 import org.knowm.xchange.ExchangeSpecification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +39,7 @@ public class HuobiPrivateStreamingService extends JsonNettyStreamingService {
 
     private final StreamingExchange exchange;
 
-    private final CompletableSubject authSubject = CompletableSubject.create();
+    private final BehaviorSubject<Boolean> authSubject = BehaviorSubject.createDefault(false);
 
     public HuobiPrivateStreamingService(StreamingExchange exchange, String apiUrl) {
         super(apiUrl, Integer.MAX_VALUE);
@@ -48,12 +49,21 @@ public class HuobiPrivateStreamingService extends JsonNettyStreamingService {
 
     @Override
     public Completable connect() {
-        return super.connect().doOnComplete(this::auth).andThen(authSubject);
+        return super.connect().doOnComplete(this::auth).andThen(
+                authSubject.filter(it -> it).take(1).ignoreElements());
     }
 
     @Override
     public Completable reconnect() {
-        return super.reconnect().doOnComplete(this::auth).andThen(authSubject);
+        return super.reconnect().doOnComplete(this::auth).andThen(
+                authSubject.filter(it -> it).take(1).ignoreElements());
+    }
+
+    public Observable<Boolean> ready() {
+        return Observable
+                .combineLatest(authSubject, connected(), Boolean::logicalAnd)
+                .distinctUntilChanged()
+                .share();
     }
 
     @Override
@@ -98,8 +108,6 @@ public class HuobiPrivateStreamingService extends JsonNettyStreamingService {
     @Override
     protected void handleMessage(JsonNode message) {
 
-        LOG.debug("=>: {}", message);
-
         JsonNode op = message.get("op");
 
         try {
@@ -114,7 +122,10 @@ public class HuobiPrivateStreamingService extends JsonNettyStreamingService {
                     handleAuth(message);
                     return;
                 case "sub":
-                    handleSubscription(message);
+                    handleErrorIfExists(message, "Subscribe");
+                    return;
+                case "unsub":
+                    handleErrorIfExists(message, "Unsubscribe");
                     return;
                 case "notify":
                     super.handleMessage(message);
@@ -144,7 +155,7 @@ public class HuobiPrivateStreamingService extends JsonNettyStreamingService {
         if (errCode == 0) {
             long userId = message.get("data").get("user-id").asLong();
             LOG.info("Authorisation is successful. Logged with id {}", userId);
-            authSubject.onComplete();
+            authSubject.onNext(true);
             return;
         }
 
@@ -170,38 +181,27 @@ public class HuobiPrivateStreamingService extends JsonNettyStreamingService {
         handleChannelError(channel, new Exception(String.format("Subscription error: %s", errMessage)));
     }
 
-    private boolean handlePingIfExists(JsonNode message) {
+    private void handleErrorIfExists(JsonNode message, String scope) {
 
-        JsonNode ping = message.get("ping");
-        if (ping != null) {
-            try {
-                sendMessage(mapper.writeValueAsString(new HuobiPongMessage(ping.asLong())));
-            } catch (JsonProcessingException e) {
-                LOG.error("Fail to serialize pong message: {}", e.getMessage(), e);
-            }
-            return true;
+        long errCode = message.get("err-code").asLong();
+        String channel = message.get("topic").asText();
+
+        if (errCode == 0) {
+            LOG.info("Subscription to '{}' is successful", channel);
+            return;
         }
 
-        return false;
-    }
+        LOG.error("Subscription error: {}", message);
 
-    private boolean handlePongIfExists(JsonNode message) {
-
-        JsonNode pong = message.get("pong");
-        if (pong != null) {
-            long pongTime = pong.asLong();
-            LOG.debug("Ping responded at {}ms", System.currentTimeMillis() - pongTime);
-            return true;
-        }
-
-        return false;
+        String errMessage = message.get("err-msg").asText();
+        handleChannelError(channel, new Exception(String.format("%s error: %s", scope, errMessage)));
     }
 
     private void auth() throws NoSuchAlgorithmException, InvalidKeyException, JsonProcessingException {
         ExchangeSpecification specification = exchange.getExchangeSpecification();
         if (specification == null) {
             LOG.debug("Exchange has no specification. Skip authorisation");
-            authSubject.onComplete();
+            authSubject.onNext(true);
             return;
         }
 
@@ -210,7 +210,7 @@ public class HuobiPrivateStreamingService extends JsonNettyStreamingService {
 
         if (apiKey == null || secretKey == null) {
             LOG.debug("Credentials are not defined. Skip authorisation");
-            authSubject.onComplete();
+            authSubject.onNext(true);
             return;
         }
 
