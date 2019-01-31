@@ -178,12 +178,11 @@ public class HuobiJsonTests {
         Assert.assertEquals(order.getStatus(), Order.OrderStatus.CANCELED);
     }
 
-
     @Test
-    public void testGetOrder_FillLimit() throws Exception {
+    public void testGetOrder_FillBuyLimit() throws Exception {
 
         JsonNode jsonNode = objectMapper.readTree(ClassLoader.getSystemClassLoader()
-                .getResourceAsStream("order-limit-fill.json"));
+                .getResourceAsStream("order-limit-buy-fill.json"));
 
         when(privateStreamingService.subscribeChannel("orders.*")).thenReturn(Observable.just(jsonNode));
 
@@ -202,6 +201,32 @@ public class HuobiJsonTests {
         Assert.assertEquals(order.getLimitPrice(), new BigDecimal("3775.74"));
         Assert.assertEquals(order.getFee(), new BigDecimal("0.0000004"));
         Assert.assertEquals(order.getTimestamp(), new Date(1548666190545L));
+        Assert.assertEquals(order.getStatus(), Order.OrderStatus.FILLED);
+    }
+
+    @Test
+    public void testGetOrder_FillSellLimit() throws Exception {
+
+        JsonNode jsonNode = objectMapper.readTree(ClassLoader.getSystemClassLoader()
+                .getResourceAsStream("order-limit-sell-fill.json"));
+
+        when(privateStreamingService.subscribeChannel("orders.*")).thenReturn(Observable.just(jsonNode));
+
+        TestObserver<Order> observer = exchange.getStreamingPrivateDataService().getOrders().test();
+
+        observer.assertNoErrors();
+        observer.assertValueCount(1);
+
+        LimitOrder order = (LimitOrder) observer.values().get(0);
+        Assert.assertEquals(order.getId(), "23197646147");
+        Assert.assertEquals(order.getType(), Order.OrderType.ASK);
+        Assert.assertEquals(order.getCurrencyPair(), new CurrencyPair(Currency.BTC, Currency.USDT));
+        Assert.assertEquals(order.getOriginalAmount(), new BigDecimal("0.0002"));
+        Assert.assertTrue(order.getRemainingAmount().compareTo(BigDecimal.ZERO) == 0);
+        Assert.assertEquals(order.getAveragePrice(), new BigDecimal("3086.56"));
+        Assert.assertEquals(order.getLimitPrice(), new BigDecimal("3086.56"));
+        Assert.assertEquals(order.getFee(), new BigDecimal("0.001371696"));
+        Assert.assertEquals(order.getTimestamp(), new Date(1548682054177L));
         Assert.assertEquals(order.getStatus(), Order.OrderStatus.FILLED);
     }
 }

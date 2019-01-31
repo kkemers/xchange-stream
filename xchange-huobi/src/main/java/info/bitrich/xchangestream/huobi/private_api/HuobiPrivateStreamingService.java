@@ -130,6 +130,9 @@ public class HuobiPrivateStreamingService extends JsonNettyStreamingService {
                 case "notify":
                     super.handleMessage(message);
                     return;
+                case "close":
+                    handleClose();
+                    return;
                 default:
                     LOG.error("Got unexpected message: {}", message);
             }
@@ -165,22 +168,6 @@ public class HuobiPrivateStreamingService extends JsonNettyStreamingService {
         authSubject.onError(new Exception(String.format("Authorisation error: %s", errMessage)));
     }
 
-    private void handleSubscription(JsonNode message) {
-
-        long errCode = message.get("err-code").asLong();
-        String channel = message.get("topic").asText();
-
-        if (errCode == 0) {
-            LOG.info("Subscription to '{}' is successful", channel);
-            return;
-        }
-
-        LOG.error("Subscription error: {}", message);
-
-        String errMessage = message.get("err-msg").asText();
-        handleChannelError(channel, new Exception(String.format("Subscription error: %s", errMessage)));
-    }
-
     private void handleErrorIfExists(JsonNode message, String scope) {
 
         long errCode = message.get("err-code").asLong();
@@ -195,6 +182,10 @@ public class HuobiPrivateStreamingService extends JsonNettyStreamingService {
 
         String errMessage = message.get("err-msg").asText();
         handleChannelError(channel, new Exception(String.format("%s error: %s", scope, errMessage)));
+    }
+
+    private void handleClose() {
+        handleChannelsError(new Exception("Exchange closes the connection"));
     }
 
     private void auth() throws NoSuchAlgorithmException, InvalidKeyException, JsonProcessingException {

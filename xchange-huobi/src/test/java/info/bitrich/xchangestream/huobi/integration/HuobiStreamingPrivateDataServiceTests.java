@@ -54,7 +54,7 @@ public class HuobiStreamingPrivateDataServiceTests {
     }
 
     @Test
-    public void getOrders_PlaceLimitOrder_ExpectIt() throws IOException {
+    public void getOrders_PlaceLimitOrder_ExpectSubmit() throws IOException {
 
         TestObserver<Order> observer = streamingDataService.getOrders().take(1).test();
 
@@ -76,6 +76,33 @@ public class HuobiStreamingPrivateDataServiceTests {
             Assert.assertEquals(limitOrder.getCurrencyPair(), CurrencyPair.BTC_USDT);
             Assert.assertEquals(limitOrder.getRemainingAmount(), new BigDecimal("0.0002"));
             Assert.assertEquals(limitOrder.getAveragePrice(), new BigDecimal("3000.12"));
+            return true;
+        });
+    }
+
+    @Test
+    public void getOrders_PlaceLimitOrder_ExpectFill() throws IOException {
+
+        TestObserver<Order> observer = streamingDataService.getOrders().take(1).test();
+
+        LimitOrder order = new LimitOrder.Builder(Order.OrderType.ASK, CurrencyPair.BTC_USDT)
+                .limitPrice(new BigDecimal("3086.56"))
+                .originalAmount(new BigDecimal("0.0002"))
+                .build();
+
+        String id = streamingExchange.getTradeService().placeLimitOrder(order);
+
+        observer.awaitTerminalEvent(30, TimeUnit.SECONDS);
+        observer.assertNoErrors();
+        observer.assertValueCount(1);
+
+        observer.assertValue(newOrder -> {
+            LimitOrder limitOrder = (LimitOrder) newOrder;
+            Assert.assertEquals(limitOrder.getId(), id);
+            Assert.assertEquals(limitOrder.getStatus(), Order.OrderStatus.NEW);
+            Assert.assertEquals(limitOrder.getCurrencyPair(), CurrencyPair.BTC_USDT);
+            Assert.assertEquals(limitOrder.getRemainingAmount(), new BigDecimal("0.0002"));
+            Assert.assertEquals(limitOrder.getAveragePrice(), new BigDecimal("3086.56"));
             return true;
         });
     }

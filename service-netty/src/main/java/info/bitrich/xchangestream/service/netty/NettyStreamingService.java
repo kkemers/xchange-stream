@@ -310,6 +310,10 @@ public abstract class NettyStreamingService<T> {
         observer.onError(t);
     }
 
+    protected void handleChannelsError(Throwable t) {
+        channels.keySet().forEach(channel -> handleChannelError(channel, t));
+    }
+
     protected WebSocketClientExtensionHandler getWebSocketClientExtensionHandler() {
         return WebSocketClientCompressionHandler.INSTANCE;
     }
