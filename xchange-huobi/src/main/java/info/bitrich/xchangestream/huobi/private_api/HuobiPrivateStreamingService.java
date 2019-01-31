@@ -165,7 +165,7 @@ public class HuobiPrivateStreamingService extends JsonNettyStreamingService {
         long errCode = message.get("err-code").asLong();
         if (errCode == 0) {
             long userId = message.get("data").get("user-id").asLong();
-            LOG.info("Authorisation is successful. Logged with id {}", userId);
+            LOG.info("Authorization is successful. Logged with id {}", userId);
             authSubject.onNext(true);
             return;
         }

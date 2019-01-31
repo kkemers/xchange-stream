@@ -88,7 +88,7 @@ public class HuobiPublicStreamingService extends JsonNettyStreamingService {
     @Override
     protected void handleMessage(JsonNode message) {
 
-        LOG.debug("=>: {}", message);
+        LOG.trace("=>: {}", message);
 
         if (handleErrorIfExists(message)) {
             return;
