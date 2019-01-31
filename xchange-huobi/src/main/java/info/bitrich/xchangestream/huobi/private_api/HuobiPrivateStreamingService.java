@@ -40,6 +40,8 @@ public class HuobiPrivateStreamingService extends JsonNettyStreamingService {
     private final StreamingExchange exchange;
 
     private final BehaviorSubject<Boolean> authSubject = BehaviorSubject.createDefault(false);
+    private String apiKey;
+    private String secretKey;
 
     public HuobiPrivateStreamingService(StreamingExchange exchange, String apiUrl) {
         super(apiUrl, Integer.MAX_VALUE);
@@ -49,6 +51,12 @@ public class HuobiPrivateStreamingService extends JsonNettyStreamingService {
 
     @Override
     public Completable connect() {
+        try {
+            prepareCredentials();
+        } catch (Exception e) {
+            return Completable.error(e);
+        }
+
         return super.connect().doOnComplete(this::auth).andThen(
                 authSubject.filter(it -> it).take(1).ignoreElements());
     }
@@ -185,26 +193,25 @@ public class HuobiPrivateStreamingService extends JsonNettyStreamingService {
     }
 
     private void handleClose() {
-        handleChannelsError(new Exception("Exchange closes the connection"));
+        LOG.warn("Exchange closes the connection");
+    }
+
+    private void prepareCredentials() throws Exception {
+        ExchangeSpecification specification = exchange.getExchangeSpecification();
+        if (specification == null) {
+            throw new Exception("Exchange has no specification");
+        }
+
+        apiKey = specification.getApiKey();
+        secretKey = specification.getSecretKey();
+
+        if (apiKey == null || secretKey == null) {
+            throw new Exception("Credentials are not defined");
+        }
+
     }
 
     private void auth() throws NoSuchAlgorithmException, InvalidKeyException, JsonProcessingException {
-        ExchangeSpecification specification = exchange.getExchangeSpecification();
-        if (specification == null) {
-            LOG.debug("Exchange has no specification. Skip authorisation");
-            authSubject.onNext(true);
-            return;
-        }
-
-        String apiKey = specification.getApiKey();
-        String secretKey = specification.getSecretKey();
-
-        if (apiKey == null || secretKey == null) {
-            LOG.debug("Credentials are not defined. Skip authorisation");
-            authSubject.onNext(true);
-            return;
-        }
-
         Map<String, String> request = authorization.calcSignature(apiKey, secretKey);
         String requestString = mapper.writeValueAsString(request);
 
