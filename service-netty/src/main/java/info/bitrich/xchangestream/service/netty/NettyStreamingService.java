@@ -206,14 +206,10 @@ public abstract class NettyStreamingService<T> {
             observable = channels.get(channelId).subject;
         }
 
-        return observable.doFinally(() -> {
-
-            if (observable.hasObservers()) {
-                return;
-            }
+        return observable.doAfterTerminate(() -> {
 
             if (!channels.containsKey(channelId)) {
-                LOG.warn("Unsubscribe from unexisting channel {}", channelId);
+                LOG.warn("Unsubscribe from nonexistent channel {}", channelId);
                 return;
             }
 
@@ -225,20 +221,6 @@ public abstract class NettyStreamingService<T> {
             }
             channels.remove(channelId);
         });
-    }
-
-    public void resubscribeChannels() {
-        for (String channelId : channels.keySet()) {
-            try {
-                Subscription subscription = channels.get(channelId);
-                String message = getSubscribeMessage(subscription.channelName, subscription.args);
-                if (message != null) {
-                    sendMessage(message);
-                }
-            } catch (IOException e) {
-                LOG.error("Failed to reconnect channel: {}", channelId);
-            }
-        }
     }
 
     public boolean isSocketOpen() {
@@ -467,6 +449,20 @@ public abstract class NettyStreamingService<T> {
             pingDisposable = Observable.interval(period, TimeUnit.SECONDS).subscribe(unused -> {
                 sendPing(heartbeatStrategy.getHeartbeatFrame());
             });
+        }
+    }
+
+    private void resubscribeChannels() {
+        for (String channelId : channels.keySet()) {
+            try {
+                Subscription subscription = channels.get(channelId);
+                String message = getSubscribeMessage(subscription.channelName, subscription.args);
+                if (message != null) {
+                    sendMessage(message);
+                }
+            } catch (IOException e) {
+                LOG.error("Failed to reconnect channel: {}", channelId);
+            }
         }
     }
 
