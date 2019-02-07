@@ -28,7 +28,7 @@ public class HuobiAdapters {
                             .id(data.getOrderId().toString())
                             .timestamp(new Date(data.getCreatedAt()))
                             .originalAmount(data.getOrderAmount())
-                            .remainingAmount(data.getUnfilledAmount())
+                            .cumulativeAmount(data.getFilledAmount())
                             .limitPrice(data.getOrderPrice())
                             .averagePrice(data.getOrderPrice())
                             .orderStatus(adaptOrderStatus(data.getOrderState()));
@@ -49,7 +49,6 @@ public class HuobiAdapters {
                             .timestamp(new Date(data.getCreatedAt()))
                             .originalAmount(data.getFilledAmount())
                             .cumulativeAmount(data.getFilledAmount())
-                            .remainingAmount(BigDecimal.ZERO)
                             .orderStatus(adaptOrderStatus(data.getOrderState()))
                             .averagePrice(data.getPrice());
             MarketOrder marketOrder = builder.build();

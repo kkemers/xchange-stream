@@ -205,6 +205,32 @@ public class HuobiJsonTests {
     }
 
     @Test
+    public void testGetOrder_PartialFillSellLimit() throws Exception {
+
+        JsonNode jsonNode = objectMapper.readTree(ClassLoader.getSystemClassLoader()
+                .getResourceAsStream("order-limit-sell-partialfill.json"));
+
+        when(privateStreamingService.subscribeChannel("orders.*")).thenReturn(Observable.just(jsonNode));
+
+        TestObserver<Order> observer = exchange.getStreamingPrivateDataService().getOrders().test();
+
+        observer.assertNoErrors();
+        observer.assertValueCount(1);
+
+        LimitOrder order = (LimitOrder) observer.values().get(0);
+        Assert.assertEquals(order.getId(), "23952597171");
+        Assert.assertEquals(order.getType(), Order.OrderType.ASK);
+        Assert.assertEquals(order.getCurrencyPair(), new CurrencyPair("GSC", "ETH"));
+        Assert.assertEquals(order.getOriginalAmount(), new BigDecimal("1000"));
+        Assert.assertTrue(order.getRemainingAmount().compareTo(new BigDecimal("999")) == 0);
+        Assert.assertEquals(order.getAveragePrice(), new BigDecimal("0.00003031"));
+        Assert.assertEquals(order.getLimitPrice(), new BigDecimal("0.00003031"));
+        Assert.assertEquals(order.getFee(), new BigDecimal("0.00000006062"));
+        Assert.assertEquals(order.getTimestamp(), new Date(1549538694671L));
+        Assert.assertEquals(order.getStatus(), Order.OrderStatus.PARTIALLY_FILLED);
+    }
+
+    @Test
     public void testGetOrder_FillSellLimit() throws Exception {
 
         JsonNode jsonNode = objectMapper.readTree(ClassLoader.getSystemClassLoader()
