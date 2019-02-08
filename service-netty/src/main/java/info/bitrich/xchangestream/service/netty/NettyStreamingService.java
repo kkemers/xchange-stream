@@ -149,6 +149,10 @@ public abstract class NettyStreamingService<T> {
         return channelName;
     }
 
+    protected Completable authorize() {
+        return Completable.complete();
+    }
+
     /**
      * Handler that receives incoming messages.
      *
@@ -339,7 +343,7 @@ public abstract class NettyStreamingService<T> {
     }
 
     private Completable connectImpl() {
-        return Completable.create(completable -> {
+        return Completable.create(emitter -> {
             try {
                 LOG.info("Connecting to {}://{}:{}{}", uri.getScheme(), uri.getHost(), uri.getPort(), uri.getPath());
                 String scheme = uri.getScheme() == null ? "ws" : uri.getScheme();
@@ -412,23 +416,23 @@ public abstract class NettyStreamingService<T> {
                     if (future.isSuccess()) {
                         handler.handshakeFuture().addListener(f -> {
                             if (f.isSuccess()) {
-                                completable.onComplete();
-                                onConnected();
+                                emitter.onComplete();
                             } else {
-                                completable.onError(f.cause());
+                                emitter.onError(f.cause());
                                 onDisconnected();
                             }
                         });
                     } else {
-                        completable.onError(future.cause());
+                        emitter.onError(future.cause());
                         onDisconnected();
                     }
 
                 });
             } catch (Exception throwable) {
-                completable.onError(throwable);
+                emitter.onError(throwable);
             }
-        });
+        }).andThen(authorize())
+          .doOnComplete(this::onConnected);
     }
 
     private void onDisconnected() {

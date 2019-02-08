@@ -54,6 +54,10 @@ public class HuobiStreamingPrivateDataServiceTests {
     }
 
     @Test
+    public void smoke() {
+    }
+
+    @Test
     public void getOrders_PlaceLimitOrder_ExpectSubmit() throws IOException {
 
         TestObserver<Order> observer = streamingDataService.getOrders().take(1).test();

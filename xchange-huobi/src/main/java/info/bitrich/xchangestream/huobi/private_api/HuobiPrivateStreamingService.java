@@ -12,8 +12,7 @@ import info.bitrich.xchangestream.service.netty.JsonNettyStreamingService;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.reactivex.Completable;
-import io.reactivex.Observable;
-import io.reactivex.subjects.BehaviorSubject;
+import io.reactivex.CompletableEmitter;
 import org.knowm.xchange.ExchangeSpecification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,8 +22,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
@@ -39,7 +36,7 @@ public class HuobiPrivateStreamingService extends JsonNettyStreamingService {
 
     private final StreamingExchange exchange;
 
-    private final BehaviorSubject<Boolean> authSubject = BehaviorSubject.createDefault(false);
+    private CompletableEmitter authEmitter;
     private String apiKey;
     private String secretKey;
 
@@ -57,21 +54,18 @@ public class HuobiPrivateStreamingService extends JsonNettyStreamingService {
             return Completable.error(e);
         }
 
-        return super.connect().doOnComplete(this::auth).andThen(
-                authSubject.filter(it -> it).take(1).ignoreElements());
+        return super.connect();
     }
 
     @Override
-    public Completable reconnect() {
-        return super.reconnect().doOnComplete(this::auth).andThen(
-                authSubject.filter(it -> it).take(1).ignoreElements());
-    }
+    public Completable authorize() {
+        return Completable.create(emitter -> {
+            Map<String, String> request = authorization.calcSignature(apiKey, secretKey);
+            String requestString = mapper.writeValueAsString(request);
+            sendMessage(requestString);
 
-    public Observable<Boolean> ready() {
-        return Observable
-                .combineLatest(authSubject, connected(), Boolean::logicalAnd)
-                .distinctUntilChanged()
-                .share();
+            authEmitter = emitter;
+        });
     }
 
     @Override
@@ -166,14 +160,14 @@ public class HuobiPrivateStreamingService extends JsonNettyStreamingService {
         if (errCode == 0) {
             long userId = message.get("data").get("user-id").asLong();
             LOG.info("Authorization is successful. Logged with id {}", userId);
-            authSubject.onNext(true);
+            authEmitter.onComplete();
             return;
         }
 
         LOG.error("Authorisation error: {}", message);
 
         String errMessage = message.get("err-msg").asText();
-        authSubject.onError(new Exception(String.format("Authorisation error: %s", errMessage)));
+        authEmitter.onError(new Exception(String.format("Authorisation error: %s", errMessage)));
     }
 
     private void handleErrorIfExists(JsonNode message, String scope) {
@@ -208,14 +202,5 @@ public class HuobiPrivateStreamingService extends JsonNettyStreamingService {
         if (apiKey == null || secretKey == null) {
             throw new Exception("Credentials are not defined");
         }
-
     }
-
-    private void auth() throws NoSuchAlgorithmException, InvalidKeyException, JsonProcessingException {
-        Map<String, String> request = authorization.calcSignature(apiKey, secretKey);
-        String requestString = mapper.writeValueAsString(request);
-
-        sendMessage(requestString);
-    }
-
 }

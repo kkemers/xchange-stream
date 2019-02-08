@@ -114,13 +114,13 @@ public class HuobiStreamingExchange extends HuobiExchange implements StreamingEx
     public Observable<Boolean> ready() {
         switch (streamType) {
             case PUBLIC:
-                return publicStreamingService.ready();
+                return publicStreamingService.connected();
             case PRIVATE:
-                return privateStreamingService.ready();
+                return privateStreamingService.connected();
             case BOTH:
-                return Observable
-                        .combineLatest(publicStreamingService.ready(),
-                                publicStreamingService.ready(), Boolean::logicalAnd)
+                return Observable.combineLatest(publicStreamingService.connected(),
+                                                publicStreamingService.connected(),
+                                                Boolean::logicalAnd)
                         .distinctUntilChanged()
                         .share();
             default:
