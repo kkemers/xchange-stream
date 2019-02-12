@@ -118,6 +118,11 @@ public class BitfinexStreamingAdapters {
         if (status.startsWith("PARTIALLY FILLED")) {
             return Order.OrderStatus.PARTIALLY_FILLED;
         }
+        // Bitfinex can send this status for too large orders.
+        // One part will be placed, but the remainder will be canceled by exchange with this state
+        if (status.startsWith("WIDTH CANCELED")) {
+            return Order.OrderStatus.PARTIALLY_CANCELED;
+        }
 
         log.error("Unknown status in order: {}", order);
         return Order.OrderStatus.UNKNOWN;
