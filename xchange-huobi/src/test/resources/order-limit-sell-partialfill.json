@@ -1,0 +1,23 @@
+{
+  "op": "notify",
+  "ts": 1549538694785,
+  "topic": "orders.*",
+  "data": {
+    "seq-id": 100021102794,
+    "order-id": 23952597171,
+    "symbol": "gsceth",
+    "account-id": 1798730,
+    "order-amount": "1000",
+    "order-price": "0.00003031",
+    "created-at": 1549538694671,
+    "order-type": "sell-limit",
+    "order-source": "spot-api",
+    "order-state": "partial-filled",
+    "role": "maker",
+    "price": "0.00003031",
+    "filled-amount": "1",
+    "unfilled-amount": "0",
+    "filled-cash-amount": "0.00003031",
+    "filled-fees": "0.00000006062"
+  }
+}

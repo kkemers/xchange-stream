@@ -9,6 +9,9 @@ import info.bitrich.xchangestream.bitfinex.dto.BitfinexWebSocketUnSubscriptionMe
 import info.bitrich.xchangestream.core.StreamingExchange;
 import info.bitrich.xchangestream.service.netty.JsonNettyStreamingService;
 import io.netty.handler.codec.http.websocketx.extensions.WebSocketClientExtensionHandler;
+import io.reactivex.Completable;
+import io.reactivex.CompletableEmitter;
+import io.reactivex.Observable;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.exceptions.ExchangeException;
 import org.slf4j.Logger;
@@ -39,10 +42,15 @@ public class BitfinexStreamingService extends JsonNettyStreamingService {
     private final StreamingExchange streamingExchange;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private CompletableEmitter authEmitter;
 
     public BitfinexStreamingService(StreamingExchange streamingExchange, String apiUrl) {
         super(apiUrl, Integer.MAX_VALUE);
         this.streamingExchange = streamingExchange;
+
+        super.connected()
+                .filter(status -> status)
+                .subscribe(status -> subscribedChannels.clear());
     }
 
     @Override
@@ -129,15 +137,17 @@ public class BitfinexStreamingService extends JsonNettyStreamingService {
                 if (version != null) {
                     LOG.debug("Bitfinex websocket API version: {}.", version.intValue());
                 }
-                auth();
                 break;
             case AUTH: {
                 String status = message.get("status").asText();
                 if (status.equals("OK")) {
                     LOG.info("Authorization success");
+                    authEmitter.onComplete();
                 } else {
                     int autErrorCode = message.get("code").asInt();
-                    LOG.error("Authorization error [{}]: {}", autErrorCode, authCodeToMessage(autErrorCode));
+                    LOG.error("Authorisation error: {}", authCodeToMessage(autErrorCode));
+                    authEmitter.onError(new Exception(String.format("Authorization error [%s]: %s",
+                            autErrorCode, authCodeToMessage(autErrorCode))));
                 }
                 break;
             }
@@ -235,27 +245,33 @@ public class BitfinexStreamingService extends JsonNettyStreamingService {
         return subscribedChannels.get(chanId);
     }
 
-    private void auth() {
-        ExchangeSpecification specification = streamingExchange.getExchangeSpecification();
-        String apiKey = specification.getApiKey();
-        String secretKey = specification.getSecretKey();
+    @Override
+    protected Completable authorize() {
+        return Completable.create(emitter -> {
+            ExchangeSpecification specification = streamingExchange.getExchangeSpecification();
+            String apiKey = specification.getApiKey();
+            String secretKey = specification.getSecretKey();
 
-        if (apiKey == null || secretKey == null) {
-            LOG.debug("Credentials are not defined. Skip authorisation");
-            return;
-        }
+            if (apiKey == null || secretKey == null) {
+                LOG.debug("Credentials are not defined. Skip authorisation");
+                return;
+            }
 
-        Long nonce = streamingExchange.getNonceFactory().createValue();
-        String authPayload = String.format("AUTH%d", nonce);
+            Long nonce = streamingExchange.getNonceFactory().createValue();
+            String authPayload = String.format("AUTH%d", nonce);
 
-        BitfinexStreamingDigest digest = new BitfinexStreamingDigest(secretKey);
-        String signature = digest.createSignature(authPayload);
+            BitfinexStreamingDigest digest = new BitfinexStreamingDigest(secretKey);
+            String signature = digest.createSignature(authPayload);
 
-        BitfinexWebSocketAuthRequest message =
-                new BitfinexWebSocketAuthRequest(apiKey, signature, authPayload, String.valueOf(nonce),
-                        "trading");
-        sendMessage(message);
+            BitfinexWebSocketAuthRequest message =
+                    new BitfinexWebSocketAuthRequest(apiKey, signature, authPayload, String.valueOf(nonce),
+                            "trading");
+            sendMessage(message);
+
+            authEmitter = emitter;
+        });
     }
+
 
     private void sendMessage(Object message) {
         try {

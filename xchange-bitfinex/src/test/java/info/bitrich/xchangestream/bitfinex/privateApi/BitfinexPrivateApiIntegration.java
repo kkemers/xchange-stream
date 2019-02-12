@@ -44,6 +44,10 @@ public class BitfinexPrivateApiIntegration {
     }
 
     @Test
+    public void Smoke() throws IOException {
+    }
+
+    @Test
     public void PlaceLimitOrders() throws IOException {
         LimitOrder limitOrder1 =
                 new LimitOrder.Builder(Order.OrderType.BID, CurrencyPair.BTC_USD)
@@ -56,9 +60,11 @@ public class BitfinexPrivateApiIntegration {
                         .limitPrice(new BigDecimal("5001.0"))
                         .build();
 
-        TestObserver<Order> observer = exchange.getStreamingPrivateDataService().getOrders().take(2).test();
 
         exchange.connect().blockingAwait();
+
+        TestObserver<Order> observer = exchange.getStreamingPrivateDataService().getOrders().take(2).test();
+
         exchange.getTradeService().cancelOrder(new CancelAllOrders() {});
         exchange.getTradeService().placeLimitOrder(limitOrder1);
         exchange.getTradeService().placeLimitOrder(limitOrder2);

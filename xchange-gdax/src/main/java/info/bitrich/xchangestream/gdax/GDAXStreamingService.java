@@ -31,7 +31,7 @@ public class GDAXStreamingService extends JsonNettyStreamingService {
     private ProductSubscription product = null;
     private final Supplier<GDAXWebsocketAuthData> authData;
 
-    private WebSocketClientHandler.WebSocketMessageHandler channelInactiveHandler = null;
+    private WebSocketClientHandler.WebSocketTextMessageHandler channelInactiveHandler = null;
 
     public GDAXStreamingService(String apiUrl, Supplier<GDAXWebsocketAuthData> authData) {
         super(apiUrl, Integer.MAX_VALUE);
@@ -96,13 +96,16 @@ public class GDAXStreamingService extends JsonNettyStreamingService {
     }
 
     @Override
-    protected WebSocketClientHandler getWebSocketClientHandler(WebSocketClientHandshaker handshaker,
-                                                               WebSocketClientHandler.WebSocketMessageHandler handler) {
+    protected WebSocketClientHandler getWebSocketClientHandler(
+            WebSocketClientHandshaker handshaker,
+            WebSocketClientHandler.WebSocketTextMessageHandler textMessageHandler,
+            WebSocketClientHandler.WebSocketBinaryMessageHandler binaryMessageHandler) {
+
         LOG.info("Registering GDAXWebSocketClientHandler");
-        return new GDAXWebSocketClientHandler(handshaker, handler);
+        return new GDAXWebSocketClientHandler(handshaker, textMessageHandler, binaryMessageHandler);
     }
 
-    public void setChannelInactiveHandler(WebSocketClientHandler.WebSocketMessageHandler channelInactiveHandler) {
+    public void setChannelInactiveHandler(WebSocketClientHandler.WebSocketTextMessageHandler channelInactiveHandler) {
         this.channelInactiveHandler = channelInactiveHandler;
     }
 
@@ -116,8 +119,10 @@ public class GDAXStreamingService extends JsonNettyStreamingService {
      */
     class GDAXWebSocketClientHandler extends NettyWebSocketClientHandler {
 
-        public GDAXWebSocketClientHandler(WebSocketClientHandshaker handshaker, WebSocketMessageHandler handler) {
-            super(handshaker, handler);
+        public GDAXWebSocketClientHandler(WebSocketClientHandshaker handshaker,
+                                          WebSocketTextMessageHandler textHandler,
+                                          WebSocketBinaryMessageHandler binaryHandler) {
+            super(handshaker, textHandler, binaryHandler);
         }
 
         @Override

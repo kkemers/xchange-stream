@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import info.bitrich.xchangestream.service.netty.strategy.HeartbeatStrategy;
 import info.bitrich.xchangestream.service.netty.strategy.DefaultHeartbeatStrategy;
+import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.websocketx.*;
 import io.reactivex.*;
 import io.reactivex.disposables.Disposable;
@@ -148,12 +149,20 @@ public abstract class NettyStreamingService<T> {
         return channelName;
     }
 
+    protected Completable authorize() {
+        return Completable.complete();
+    }
+
     /**
      * Handler that receives incoming messages.
      *
      * @param message Content of the message from the server.
      */
-    public abstract void messageHandler(String message);
+    protected abstract void messageHandler(String message);
+
+    protected void messageHandler(ByteBuf message) {
+        throw new IllegalStateException(String.format("Got unexpected binary message: %s", message));
+    }
 
     public void sendMessage(String message) {
         LOG.trace("<=: {}", message);
@@ -201,14 +210,10 @@ public abstract class NettyStreamingService<T> {
             observable = channels.get(channelId).subject;
         }
 
-        return observable.doFinally(() -> {
-
-            if (observable.hasObservers()) {
-                return;
-            }
+        return observable.doAfterTerminate(() -> {
 
             if (!channels.containsKey(channelId)) {
-                LOG.warn("Unsubscribe from unexisting channel {}", channelId);
+                LOG.warn("Unsubscribe from nonexistent channel {}", channelId);
                 return;
             }
 
@@ -220,20 +225,6 @@ public abstract class NettyStreamingService<T> {
             }
             channels.remove(channelId);
         });
-    }
-
-    public void resubscribeChannels() {
-        for (String channelId : channels.keySet()) {
-            try {
-                Subscription subscription = channels.get(channelId);
-                String message = getSubscribeMessage(subscription.channelName, subscription.args);
-                if (message != null) {
-                    sendMessage(message);
-                }
-            } catch (IOException e) {
-                LOG.error("Failed to reconnect channel: {}", channelId);
-            }
-        }
     }
 
     public boolean isSocketOpen() {
@@ -258,8 +249,6 @@ public abstract class NettyStreamingService<T> {
     }
 
     protected void handleMessage(T message) {
-
-        LOG.trace("=>: {}", message);
 
         String channel = getChannel(message);
         if (channel == null) {
@@ -311,14 +300,20 @@ public abstract class NettyStreamingService<T> {
         return WebSocketClientCompressionHandler.INSTANCE;
     }
 
-    protected WebSocketClientHandler getWebSocketClientHandler(WebSocketClientHandshaker handshaker,
-                                                               WebSocketClientHandler.WebSocketMessageHandler handler) {
-        return new NettyWebSocketClientHandler(handshaker, handler);
+    protected WebSocketClientHandler getWebSocketClientHandler(
+            WebSocketClientHandshaker handshaker,
+            WebSocketClientHandler.WebSocketTextMessageHandler textMessageHandler,
+            WebSocketClientHandler.WebSocketBinaryMessageHandler binaryMessageHandler) {
+
+        return new NettyWebSocketClientHandler(handshaker, textMessageHandler, binaryMessageHandler);
     }
 
     protected class NettyWebSocketClientHandler extends WebSocketClientHandler {
-        protected NettyWebSocketClientHandler(WebSocketClientHandshaker handshaker, WebSocketMessageHandler handler) {
-            super(handshaker, handler);
+
+        protected NettyWebSocketClientHandler(WebSocketClientHandshaker handshaker,
+                                              WebSocketTextMessageHandler textMessageHandler,
+                                              WebSocketBinaryMessageHandler binaryMessageHandler) {
+            super(handshaker, textMessageHandler, binaryMessageHandler);
         }
 
         @Override
@@ -348,7 +343,7 @@ public abstract class NettyStreamingService<T> {
     }
 
     private Completable connectImpl() {
-        return Completable.create(completable -> {
+        return Completable.create(emitter -> {
             try {
                 LOG.info("Connecting to {}://{}:{}{}", uri.getScheme(), uri.getHost(), uri.getPort(), uri.getPath());
                 String scheme = uri.getScheme() == null ? "ws" : uri.getScheme();
@@ -385,7 +380,7 @@ public abstract class NettyStreamingService<T> {
 
                 final WebSocketClientHandler handler = getWebSocketClientHandler(WebSocketClientHandshakerFactory.newHandshaker(
                         uri, WebSocketVersion.V13, null, true, new DefaultHttpHeaders(), maxFramePayloadLength),
-                        this::messageHandler);
+                        this::messageHandler, this::messageHandler);
 
                 this.eventLoopGroup = new NioEventLoopGroup();
 
@@ -421,23 +416,23 @@ public abstract class NettyStreamingService<T> {
                     if (future.isSuccess()) {
                         handler.handshakeFuture().addListener(f -> {
                             if (f.isSuccess()) {
-                                completable.onComplete();
-                                onConnected();
+                                emitter.onComplete();
                             } else {
-                                completable.onError(f.cause());
+                                emitter.onError(f.cause());
                                 onDisconnected();
                             }
                         });
                     } else {
-                        completable.onError(future.cause());
+                        emitter.onError(future.cause());
                         onDisconnected();
                     }
 
                 });
             } catch (Exception throwable) {
-                completable.onError(throwable);
+                emitter.onError(throwable);
             }
-        });
+        }).andThen(authorize())
+          .doOnComplete(this::onConnected);
     }
 
     private void onDisconnected() {
@@ -461,11 +456,25 @@ public abstract class NettyStreamingService<T> {
         }
     }
 
+    private void resubscribeChannels() {
+        for (String channelId : channels.keySet()) {
+            try {
+                Subscription subscription = channels.get(channelId);
+                String message = getSubscribeMessage(subscription.channelName, subscription.args);
+                if (message != null) {
+                    sendMessage(message);
+                }
+            } catch (IOException e) {
+                LOG.error("Failed to reconnect channel: {}", channelId);
+            }
+        }
+    }
+
     private void sendPing(WebSocketFrame frame) {
         LOG.trace("Sending ping: {}", frame);
 
         if (webSocketChannel == null || !webSocketChannel.isOpen()) {
-            LOG.warn("WebSocket is not open! Call connect first.");
+            LOG.warn("Cannot send ping. WebSocket is not open! Call connect first.");
             return;
         }
 

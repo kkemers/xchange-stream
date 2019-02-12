@@ -84,14 +84,20 @@ public class OkCoinStreamingService extends JsonNettyStreamingService {
     }
 
     @Override
-    protected WebSocketClientHandler getWebSocketClientHandler(WebSocketClientHandshaker handshaker, WebSocketClientHandler.WebSocketMessageHandler handler) {
-        return new OkCoinNettyWebSocketClientHandler(handshaker, handler);
+    protected WebSocketClientHandler getWebSocketClientHandler(
+            WebSocketClientHandshaker handshaker,
+            WebSocketClientHandler.WebSocketTextMessageHandler textMessageHandler,
+            WebSocketClientHandler.WebSocketBinaryMessageHandler binaryMessageHandler) {
+
+        return new OkCoinNettyWebSocketClientHandler(handshaker, textMessageHandler, binaryMessageHandler);
     }
 
     protected class OkCoinNettyWebSocketClientHandler extends NettyWebSocketClientHandler {
 
-        protected OkCoinNettyWebSocketClientHandler(WebSocketClientHandshaker handshaker, WebSocketMessageHandler handler) {
-            super(handshaker, handler);
+        protected OkCoinNettyWebSocketClientHandler(WebSocketClientHandshaker handshaker,
+                                                    WebSocketTextMessageHandler textHandler,
+                                                    WebSocketBinaryMessageHandler binaryHandler) {
+            super(handshaker, textHandler, binaryHandler);
         }
 
         @Override
