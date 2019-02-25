@@ -254,6 +254,7 @@ public class BitfinexStreamingService extends JsonNettyStreamingService {
 
             if (apiKey == null || secretKey == null) {
                 LOG.debug("Credentials are not defined. Skip authorisation");
+                emitter.onComplete();
                 return;
             }
 

@@ -7,6 +7,7 @@ import info.bitrich.xchangestream.core.StreamingExchange;
 import info.bitrich.xchangestream.core.StreamingExchangeFactory;
 import io.reactivex.observers.TestObserver;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.knowm.xchange.currency.CurrencyPair;
@@ -23,7 +24,7 @@ public class BitfinexPublicApiIntegration {
     @Before
     public void setup() {
         streamingExchange = StreamingExchangeFactory.INSTANCE.createExchange(BitfinexStreamingExchange.class.getName());
-        streamingExchange.connect().blockingAwait();
+        Assert.assertTrue(streamingExchange.connect().blockingAwait(10, TimeUnit.SECONDS));
         streamingMarketDataService =
                 (BitfinexStreamingMarketDataService) streamingExchange.getStreamingMarketDataService();
     }
