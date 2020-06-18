@@ -23,9 +23,9 @@
         </dependency>
 
         <dependency>
-            <groupId>org.knowm.xchange</groupId>
+            <groupId>com.github.kkemers.xchange</groupId>
             <artifactId>xchange-core</artifactId>
-            <version>${xchange.version}</version>
+            <version>04964b9386fe437bbf7aafa6816dbe392fa0ab4e</version>
         </dependency>
     </dependencies>
 

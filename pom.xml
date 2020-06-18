@@ -101,12 +101,6 @@
     <dependencies>
 
         <dependency>
-            <groupId>com.github.kkemers.xchange</groupId>
-            <artifactId>xchange-core</artifactId>
-            <version>04964b9386fe437bbf7aafa6816dbe392fa0ab4e</version>
-        </dependency>
-
-        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>1.7.13</version>
