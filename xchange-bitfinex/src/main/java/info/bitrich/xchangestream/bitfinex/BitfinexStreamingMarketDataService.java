@@ -11,7 +11,8 @@ import org.knowm.xchange.dto.marketdata.*;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static org.knowm.xchange.bitfinex.v1.BitfinexAdapters.*;
+import static org.knowm.xchange.bitfinex.service.BitfinexAdapters.*;
+
 
 /**
  * Created by Lukas Zaoralek on 7.11.17.

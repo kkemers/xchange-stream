@@ -23,7 +23,7 @@
         <dependency>
             <groupId>org.knowm.xchange</groupId>
             <artifactId>xchange-gdax</artifactId>
-            <version>${xchange.version}</version>
+            <version>4.3.11</version>
         </dependency>
     </dependencies>
 </project> 

@@ -53,41 +53,59 @@
         </developer>
     </developers>
 
-    <scm>
-        <connection>scm:git:git@github.com:bitrich-info/xchange-stream.git</connection>
-        <developerConnection>scm:git:git@github.com:bitrich-info/xchange-stream.git</developerConnection>
-        <url>git@github.com:bitrich-info/xchange-stream.git</url>
-        <tag>HEAD</tag>
-    </scm>
+<!--    <scm>-->
+<!--        <connection>scm:git:git@github.com:bitrich-info/xchange-stream.git</connection>-->
+<!--        <developerConnection>scm:git:git@github.com:bitrich-info/xchange-stream.git</developerConnection>-->
+<!--        <url>git@github.com:bitrich-info/xchange-stream.git</url>-->
+<!--        <tag>HEAD</tag>-->
+<!--    </scm>-->
 
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-        <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
-    </distributionManagement>
+<!--    <distributionManagement>-->
+<!--        <snapshotRepository>-->
+<!--            <id>ossrh</id>-->
+<!--            <url>https://oss.sonatype.org/content/repositories/snapshots</url>-->
+<!--        </snapshotRepository>-->
+<!--        <repository>-->
+<!--            <id>ossrh</id>-->
+<!--            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>-->
+<!--        </repository>-->
+<!--    </distributionManagement>-->
 
-    <repositories>
-        <!-- For XChange SNAPSHOT dependency -->
-        <repository>
-            <id>sonatype-oss-snapshot</id>
-            <snapshots />
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </repository>
-    </repositories>
+<!--    <repositories>-->
+<!--        &lt;!&ndash; For XChange SNAPSHOT dependency &ndash;&gt;-->
+<!--        <repository>-->
+<!--            <id>sonatype-oss-snapshot</id>-->
+<!--            <snapshots />-->
+<!--            <url>https://oss.sonatype.org/content/repositories/snapshots</url>-->
+<!--        </repository>-->
+<!--    </repositories>-->
 
     <properties>
-        <xchange.version>4.3.11</xchange.version>
+        <xchange.version>4.4.2</xchange.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
+
+    <repositories>
+        <!-- For XChange SNAPSHOT dependency -->
+        <repository>
+            <id>jitpack.io</id>
+<!--            <snapshots/>-->
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
+
+
     <dependencies>
+
+        <dependency>
+            <groupId>com.github.kkemers.xchange</groupId>
+            <artifactId>xchange-core</artifactId>
+            <version>04964b9386fe437bbf7aafa6816dbe392fa0ab4e</version>
+        </dependency>
+
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
